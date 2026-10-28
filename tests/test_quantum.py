@@ -37,17 +37,26 @@ def test_too_many_knights(cb):
         cb.move(2, 0, 3, 2, disp=False)
 
 
-def test_one_bishop_per_square_color(cb):
-    # Pieces 2 and 4 start on dark squares and both move diagonally,
-    # so they are a bishop and a queen. The dark-squared bishop is taken,
-    # hence piece 6 (also dark) can be neither a bishop nor a queen.
+def test_bishops_on_same_color(cb):
+    # Pieces 2 and 4 start on dark squares and move along long diagonals,
+    # so each of them is a bishop or the queen. Piece 6, also on a dark
+    # square, can still be a bishop: both bishops may share a color.
     play(cb, [(1, 1, 1, 2), (0, 6, 0, 5), (2, 0, 0, 2), (1, 6, 1, 5)])
     play(cb, [(3, 1, 3, 2), (2, 6, 2, 5), (4, 0, 2, 2), (3, 6, 3, 5)])
-    natures = cb.all_legal_natures(cb.grid[6][0])
-    assert "B" not in natures
-    assert "Q" not in natures
-    # Piece 5 (light squares) can still be a bishop
-    assert "B" in cb.all_legal_natures(cb.grid[5][0])
+    assert "B" in cb.all_legal_natures(cb.grid[6][0])
+    # Once piece 6 also moves along a long diagonal, the three of them are
+    # two bishops and the queen, so piece 5 can be neither
+    play(cb, [(5, 1, 5, 2), (4, 6, 4, 5), (6, 0, 4, 2), (5, 6, 5, 5)])
+    assert cb.all_legal_natures(cb.grid[5][0]) == ["K", "R", "N"]
+
+
+def test_at_most_three_long_diagonal_movers(cb):
+    play(cb, [(1, 1, 1, 2), (0, 6, 0, 5), (2, 0, 0, 2), (1, 6, 1, 5)])
+    play(cb, [(3, 1, 3, 2), (2, 6, 2, 5), (4, 0, 2, 2), (3, 6, 3, 5)])
+    play(cb, [(5, 1, 5, 2), (4, 6, 4, 5), (6, 0, 4, 2), (5, 6, 5, 5)])
+    play(cb, [(6, 1, 6, 2), (6, 6, 6, 5)])
+    with pytest.raises(IllegalMove, match="any initial piece configuration"):
+        cb.move(5, 0, 7, 2, disp=False)
 
 
 def test_cannot_leave_king_in_check(cb):
