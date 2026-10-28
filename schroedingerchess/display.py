@@ -546,16 +546,34 @@ class ChessDisplay:
             self.selectedBox = None
             return
         box = (x // SQUARE, y // SQUARE)
-        if self.selectedBox is None:
-            self.selectedBox = box
-        elif self.selectedBox == box:
+        if self.selectedBox == box:
             self.selectedBox = None
+        elif self.isSelectable(box[0], self.flipY(box[1])):
+            # Select a piece of the player to move, or switch to another one
+            self.selectedBox = box
+        elif self.selectedBox is None:
+            pass  # empty square, or piece of the opponent: nothing to select
         else:
             x1, y1 = self.selectedBox[0], self.flipY(self.selectedBox[1])
             x2, y2 = box[0], self.flipY(box[1])
             self.selectedBox = None
             self.attempted_move = (x1, y1, x2, y2)
             self.gameEngine.move(x1, y1, x2, y2)
+
+    def isSelectable(self, x, y):
+        """Whether the user may select the piece on square ``(x, y)``.
+
+        Only the pieces of the player to move can be selected, and online, only
+        when this player is the user.
+        """
+        lightBoard = self.lightBoard or getattr(self.gameEngine, "lightBoard", None)
+        piece = None if lightBoard is None else lightBoard.getPiece(x, y)
+        turn = self._turn()
+        if piece is None or turn is None or piece["color"] != turn:
+            return False
+        if self.mode == "ONLINE":
+            return turn == getattr(self.gameEngine, "color", turn)
+        return True
 
     def updatePane(self, events=()):
         """Handle the clicks on the side pane buttons, and redraw."""
