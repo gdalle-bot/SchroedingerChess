@@ -124,12 +124,12 @@ def test_square_name():
 def test_illegal_move_banner(display):
     click(display, display._menu_buttons()["local"].rect.center)
     engine = display.gameEngine
-    # Black tries to move first: e7, then e5
-    click(display, (4 * 80 + 40, 1 * 80 + 40))
-    click(display, (4 * 80 + 40, 3 * 80 + 40))
-    assert display.attempted_move == (4, 6, 4, 4)
+    # The knight on b1 tries to go to b3
+    click(display, (1 * 80 + 40, 7 * 80 + 40))
+    click(display, (1 * 80 + 40, 5 * 80 + 40))
+    assert display.attempted_move == (1, 0, 1, 2)
     engine.moveTask(display.attempted_move)  # what the reactor would run
-    assert "out of turn" in display.error
+    assert "b1 to b3 is blocked" in display.error
     assert display._error_alpha() > 0
     assert len(display.message_history) - 1 in display.error_lines
     display.render()
@@ -184,3 +184,51 @@ def test_fifty_move_countdown(display, clock):
     display.gameEngine.lightBoard.halfmove_clock = clock
     display.lightBoard = display.gameEngine.lightBoard
     display.render()
+
+
+def square(x, y):
+    """Center of the square ``(x, y)`` on the screen, white at the bottom."""
+    return (x * 80 + 40, (7 - y) * 80 + 40)
+
+
+def test_selection_rules(display):
+    click(display, display._menu_buttons()["local"].rect.center)
+    # Empty squares and black pieces cannot be selected by white
+    click(display, square(4, 4))
+    assert display.selectedBox is None
+    click(display, square(4, 6))
+    assert display.selectedBox is None
+    # A white piece can, and clicking it again deselects it
+    click(display, square(4, 1))
+    assert display.selectedBox == (4, 6)
+    click(display, square(4, 1))
+    assert display.selectedBox is None
+    # Clicking another white piece switches the selection
+    click(display, square(4, 1))
+    click(display, square(3, 1))
+    assert display.selectedBox == (3, 6)
+    assert display.attempted_move is None
+    # Then a destination square triggers a move
+    click(display, square(3, 3))
+    assert display.attempted_move == (3, 1, 3, 3)
+    display.gameEngine.moveTask(display.attempted_move)
+    # Now black can be selected, but not white
+    click(display, square(3, 3))
+    assert display.selectedBox is None
+    click(display, square(4, 6))
+    assert display.selectedBox == (4, 1)
+
+
+def test_online_selection(display):
+    from schroedingerchess.game_engines import OnePlayerOnNetwork
+
+    engine = OnePlayerOnNetwork.__new__(OnePlayerOnNetwork)
+    engine.display, engine.lightBoard, engine.color = display, LightBoard(), 1
+    display.gameEngine, display.state, display.mode = engine, "PLAYING", "ONLINE"
+    display.lightBoard = engine.lightBoard
+    engine.turn = -1  # waiting for an opponent
+    assert not display.isSelectable(4, 6)
+    engine.turn = 0  # white to move, but the user plays black
+    assert not display.isSelectable(4, 1) and not display.isSelectable(4, 6)
+    engine.turn = 1
+    assert display.isSelectable(4, 6) and not display.isSelectable(4, 1)
