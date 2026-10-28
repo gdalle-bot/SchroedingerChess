@@ -871,7 +871,7 @@ class LightBoard:
             self.setPiece(i, piece["color"], (x2, y2), natures)
             for x in range(8):
                 for y in range(8):
-                    if x != x2 and y != y2:
+                    if (x, y) != (x2, y2):
                         k = self.getPieceIndex(x, y)
                         if k is not None:
                             piece = self.pieces[k]
@@ -906,7 +906,7 @@ class LightBoard:
             elif n == "P":
                 if color == 0 and y2 == 7:
                     return ["E"]
-                elif color == 0 and y2 == 0:
+                elif color == 1 and y2 == 0:
                     return ["E"]
                 else:
                     output_natures.append("P")

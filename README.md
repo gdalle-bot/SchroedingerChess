@@ -14,3 +14,7 @@ from the root of the repository.
 Alternatively, `pip install .` installs the package and its dependencies (Python 3.12 or later) into your current environment.
 
 To host an online game, start the server with `uv run schroedingerchess-server`.
+
+## Development
+
+Run the tests with `uv run pytest`, and lint and format the code with `uv run ruff check` and `uv run ruff format`.
