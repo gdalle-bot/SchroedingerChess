@@ -418,16 +418,6 @@ class ChessBoard:
                 problem += z[(c, i, "K")] == 0, "No promoted king " + str((c, i))
 
         for c in colors:
-            problem += (
-                sum([z[(c, i, "B")] for i in [1, 3, 5, 7]]) == 1,
-                "One " + str(c) + "-square bishop " + str(c),
-            )
-            problem += (
-                sum([z[(c, i, "B")] for i in [0, 2, 4, 6]]) == 1,
-                "One " + str(1 - c) + "-square bishop " + str(c),
-            )
-
-        for c in colors:
             for i in major_piece_numbers + promoted_numbers:
                 piece = self.pieces[c][i]
                 for n in piece.forbidden_natures:

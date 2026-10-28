@@ -14,7 +14,7 @@ They acquire one through the moves they make: a piece that jumps like a knight i
 A move is legal as long as there is at least one way to assign types to the pieces (one king, one queen, two rooks, two bishops and two knights per player) under which every move played so far was a legal chess move.
 In particular, no player may ever have left their king in check, wherever their king actually is.
 
-Checking this condition is a combinatorial problem. It is formulated as an integer linear program ([PuLP](https://github.com/coin-or/pulp) and [HiGHS](https://highs.dev/)), but solved faster by enumerating the 2880 possible arrangements of each player.
+Checking this condition is a combinatorial problem. It is formulated as an integer linear program ([PuLP](https://github.com/coin-or/pulp) and [HiGHS](https://highs.dev/)), but solved faster by enumerating the 5040 possible arrangements of each player.
 
 ## Getting started
 

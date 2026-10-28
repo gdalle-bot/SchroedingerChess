@@ -35,7 +35,6 @@ Sets
   - :math:`\mathcal{R} = \{16, \dots, 23\}` are the pieces created by promotion: pawn :math:`i` becomes piece :math:`i + 8`.
 
   The pieces with an unknown nature are :math:`\mathcal{U} = \mathcal{M} \cup \mathcal{R}`.
-- :math:`\mathcal{M}_0 = \{0, 2, 4, 6\}` and :math:`\mathcal{M}_1 = \{1, 3, 5, 7\}`: major pieces starting on squares of either color.
 - :math:`n \in \mathcal{N} = \{K, Q, R, B, N\}`: nature of a piece with maximum quantities
   :math:`q_Q = 1`, :math:`q_R = q_B = q_N = 2`.
 - :math:`s \in \mathcal{S}`: one of the 64 squares of the board.
@@ -98,12 +97,6 @@ The other natures have a limited quantity among the major pieces:
 
    \forall c \in \mathcal{C}, \forall n \in \{Q, R, B, N\}, \quad \sum_{i \in \mathcal{M}} z(c, i, n) \leq q_n
 
-There is one bishop on each square color:
-
-.. math::
-
-   \forall c \in \mathcal{C}, \quad \sum_{i \in \mathcal{M}_0} z(c, i, B) = \sum_{i \in \mathcal{M}_1} z(c, i, B) = 1
-
 Every move was possible for the nature of the piece:
 
 .. math::
@@ -125,8 +118,9 @@ Remarks
 
 **The arrangement is a permutation.**
 Since there are 8 major pieces and :math:`1 + q_Q + q_R + q_B + q_N = 8`, all the quantity constraints are tight in any feasible solution.
-Thus, the natures of the major pieces of each player form a permutation of RNBQKBNR with bishops on opposite colors.
-There are :math:`4 \times 4 \times \frac{6!}{2! \, 2!} = 2880` such permutations per player, compared with 960 in Fischer random chess.
+Thus, the natures of the major pieces of each player form a permutation of RNBQKBNR.
+There are :math:`\frac{8!}{2! \, 2! \, 2!} = 5040` such permutations per player, compared with 960 in Fischer random chess
+(which requires bishops on opposite colors and the king between the rooks).
 
 **Captured pieces are not kings.**
 No constraint explicitly says so, but it follows from the check constraint.
