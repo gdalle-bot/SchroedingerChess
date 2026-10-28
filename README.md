@@ -47,3 +47,8 @@ Continuous integration runs all of these on every pull request.
 
 This project was started in 2018 by Guillaume Dalle, Maxime Godin and Lao-tseu.
 The rules of the game come from [Antumbra Station](http://antumbrastation.com/).
+
+## License
+
+The code is released under the [MIT license](LICENSE).
+Its dependencies are under permissive licenses (BSD, MIT, ZPL, PSF), except [pygame-ce](https://github.com/pygame-community/pygame-ce) which is under the LGPL 2.1 and is installed separately, unmodified.
