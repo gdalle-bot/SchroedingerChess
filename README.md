@@ -6,12 +6,11 @@ Implementation of Haft Schroedinger Chess, where chess pieces decide what they w
 
 See the docs at https://gdalle.github.io/SchroedingerChess/
 
-To run the code, you need Python 3.14 and a few dependencies:
+To run the code, install [uv](https://docs.astral.sh/uv/) and clone this repository. Then, all it takes to play a game is to execute
 ```
-python -m venv .venv
-source .venv/bin/activate
-pip install numpy pulp highspy twisted pygame-ce
+uv run schroedingerchess
 ```
+from the root of the repository.
+Alternatively, `pip install .` installs the package and its dependencies (Python 3.12 or later) into your current environment.
 
-Then, all it takes to play a game is to execute `python -m schroedingerchess` from the root of the repository.
-To host an online game, start the server with `python -m schroedingerchess.server`.
+To host an online game, start the server with `uv run schroedingerchess-server`.
