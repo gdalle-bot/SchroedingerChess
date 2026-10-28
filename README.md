@@ -8,7 +8,7 @@ An implementation of [Haft Schrödinger chess](http://antumbrastation.com/schroe
 ## Rules in a nutshell
 
 At the start, the eight back-rank pieces of each player have no fixed type.
-They acquire one through the moves they make: a piece that jumps like a knight is a knight, a piece that moves along a long diagonal is a bishop or the queen, etc.
+They acquire one through the moves they make: a piece that jumps like a knight is a knight, a piece that moves along a long diagonal is a bishop or the queen, and so on.
 A move is legal as long as there is at least one way to assign types to the pieces (one king, one queen, two rooks, two bishops and two knights per player) under which every move played so far was a legal chess move.
 In particular, no player may ever have left their king in check, wherever their king actually is.
 
@@ -34,9 +34,9 @@ The [documentation](https://gdalle-bot.github.io/SchroedingerChess/) contains th
 ## Development
 
 ```bash
-uv run pytest                                           # tests
-uv run ruff check && uv run ruff format                 # lint and format
-uv run --group docs sphinx-build docs docs/_build       # documentation
+uv run pytest                                      # tests
+uv run ruff check && uv run ruff format            # lint and format
+uv run --group docs sphinx-build docs docs/_build  # documentation
 ```
 
 Continuous integration runs all of these on every pull request.
@@ -44,4 +44,4 @@ Continuous integration runs all of these on every pull request.
 ## Credits
 
 This project was started in 2018 by Guillaume Dalle, Maxime Godin and Lao-tseu.
-The game was invented by David Haft, and its rules were written up by [Antumbra Station](http://antumbrastation.com/).
+The rules of the game come from [Antumbra Station](http://antumbrastation.com/).
