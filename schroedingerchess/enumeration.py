@@ -1,7 +1,7 @@
 """Consistency check by enumeration, as an alternative to the integer program.
 
-Each player's back-rank pieces form one of the 2880 arrangements of RNBQKBNR
-with bishops on opposite colors (see :doc:`/formulation`). Promoted pieces
+Each player's back-rank pieces form one of the 5040 arrangements of RNBQKBNR
+(see :doc:`/formulation`). Promoted pieces
 can be a queen, rook, bishop or knight. We enumerate the arrangements of each
 player that are compatible with the moves of their own pieces, and then
 handle the check constraints, which are the only ones coupling both players.
@@ -23,9 +23,10 @@ MAJOR = list(range(8))
 PROMOTED = list(range(16, 24))
 PAWNS = list(range(8, 16))
 
-#: Maximum number of configurations per player before giving up. Each promoted
-#: piece multiplies the number of configurations by up to 4.
-MAX_CONFIGURATIONS = 200_000
+#: Maximum number of configurations per player before giving up, which bounds
+#: the memory used. Each promoted piece multiplies the number of configurations
+#: by up to 4, so this allows two promoted pieces per player.
+MAX_CONFIGURATIONS = 100_000
 
 
 class TooManyConfigurations(Exception):
@@ -34,11 +35,7 @@ class TooManyConfigurations(Exception):
 
 def _arrangements():
     """All arrangements of the major pieces, as an array of nature indices."""
-    result = set()
-    for perm in itertools.permutations([0, 1, 2, 2, 3, 3, 4, 4]):
-        bishops = [i for i in range(8) if perm[i] == 3]
-        if bishops[0] % 2 != bishops[1] % 2:
-            result.add(perm)
+    result = set(itertools.permutations([0, 1, 2, 2, 3, 3, 4, 4]))
     return np.array(sorted(result), dtype=np.int8)
 
 

@@ -12,12 +12,10 @@ from schroedingerchess.chess import ChessBoard
 
 def test_arrangements():
     arrangements = enumeration.ARRANGEMENTS
-    assert arrangements.shape == (2880, 8)
-    assert len({tuple(a) for a in arrangements}) == 2880
+    assert arrangements.shape == (5040, 8)
+    assert len({tuple(a) for a in arrangements}) == 5040
     for a in arrangements:
         assert sorted(a) == [0, 1, 2, 2, 3, 3, 4, 4]
-        bishops = np.flatnonzero(a == 3)
-        assert bishops[0] % 2 != bishops[1] % 2
 
 
 def same_answer(cb, check=None):

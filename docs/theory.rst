@@ -11,7 +11,7 @@ The examples below are executed as tests, with both the enumeration and the inte
 Setting
 -------
 
-An *arrangement* :math:`A` assigns a nature to every major piece of both players, as a permutation of RNBQKBNR with bishops on opposite colors,
+An *arrangement* :math:`A` assigns a nature to every major piece of both players, as a permutation of RNBQKBNR,
 and a nature (Q, R, B or N) to every piece obtained by promotion.
 Given an arrangement, the game is ordinary chess without castling or en passant: we call it *scramble chess* under :math:`A`.
 
@@ -27,7 +27,7 @@ Legal moves
 **Proposition 1 (ordinary chess is included).**
 Every legal game of ordinary chess without castling or en passant is a legal history of Haft Schrödinger chess.
 
-*Proof.* The standard arrangement RNBQKBNR has its bishops on opposite colors, so it belongs to :math:`\mathrm{Cons}(H)`. :math:`\square`
+*Proof.* The standard arrangement RNBQKBNR belongs to :math:`\mathrm{Cons}(H)`. :math:`\square`
 
 The converse is false: on the first move, each player has 30 legal moves instead of 20, since every major piece may be a knight (see the :doc:`tutorial`).
 
@@ -106,7 +106,7 @@ with a checkmate under some compatible arrangements and a stalemate under others
 In the first 33 half-moves, white captures every black piece except the one on a8, which is therefore the black king (Proposition 5),
 while the white pieces from c1 and f1 never move.
 Then white pushes pawns to a6, b6 and c7 while the black king walks between a8 and b8,
-and the piece from c1 travels to g7 along diagonals only, so that it can be the queen or the dark-squared bishop.
+and the piece from c1 travels to g7 along diagonals only, so that it can be the queen or a bishop.
 
 >>> prefix = (
 ...     "g1f3 g7g5 f3g5 d8e6 g5e6 c7c5 e6f8 g8g6 f8d7 b8g3 f2g3 f7f6 d7c5 a7a6 "
@@ -151,7 +151,7 @@ Complexity
 **Proposition 9 (legality is easy).**
 Deciding whether a history of length :math:`T` is legal takes time :math:`O(T)`.
 
-*Proof.* Each player has at most 8 promoted pieces, so at most :math:`2880 \times 4^8` arrangements.
+*Proof.* Each player has at most 8 promoted pieces, so at most :math:`5040 \times 4^8` arrangements.
 The enumeration of :mod:`schroedingerchess.enumeration` checks each arrangement against each of the 8 possible enemy kings at each time step,
 and then combines both players in constant time, which takes :math:`O(T)` operations with a (very large) constant. :math:`\square`
 
