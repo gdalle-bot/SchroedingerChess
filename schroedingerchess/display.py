@@ -4,7 +4,10 @@ import sys
 import os
 import pygame
 
-from chess import ChessPiece, ChessBoard, IllegalMove
+from .chess import ChessPiece, ChessBoard, IllegalMove
+
+ASSETS_DIR = os.path.dirname(os.path.abspath(__file__))
+TITLE_FONT = os.path.join(ASSETS_DIR, "fonts", "CFRemingtonTypewriter-Regul.ttf")
 
 
 class InputBox():
@@ -371,8 +374,8 @@ class ChessDisplay():
                                 return
 
         if changeState:
-            fontTitleS = pygame.font.Font("fonts/CFRemingtonTypewriter-Regul.ttf", 40)
-            fontTitle = pygame.font.Font("fonts/CFRemingtonTypewriter-Regul.ttf", 60)
+            fontTitleS = pygame.font.Font(TITLE_FONT, 40)
+            fontTitle = pygame.font.Font(TITLE_FONT, 60)
             if self.menuSelection == "LOCAL":
                 pygame.draw.rect(self.screen, pygame.Color(170, 170, 170), [abs_w, abs_h, w, h])
                 local = fontTitle.render("Local game", True, (0, 0, 0))
@@ -541,8 +544,8 @@ class ChessDisplay():
         Draws the start menu.
         """
         self.screen.blit(self.board, (0, 0))
-        fontTitle = pygame.font.Font("fonts/CFRemingtonTypewriter-Regul.ttf", 60)
-        fontTitleS = pygame.font.Font("fonts/CFRemingtonTypewriter-Regul.ttf", 40)
+        fontTitle = pygame.font.Font(TITLE_FONT, 60)
+        fontTitleS = pygame.font.Font(TITLE_FONT, 40)
         fontText = pygame.font.SysFont("Arial", 18)
         if self.menuState == "START":
             # When multiplied by 800 we get integer numbers
@@ -696,9 +699,9 @@ class ChessDisplay():
         self.pieces_pictures = {}
         for name in pieces_names:
             self.pieces_pictures[name] = pygame.transform.smoothscale(pygame.image.load(
-                "img/" + name + ".png"), (self.width // 8, self.height // 8))
+                os.path.join(ASSETS_DIR, "img", name + ".png")), (self.width // 8, self.height // 8))
         self.board = pygame.transform.scale(pygame.image.load(
-            "img/board.png"), (self.width, self.height))  # smaller icons for multiple display
+            os.path.join(ASSETS_DIR, "img", "board.png")), (self.width, self.height))  # smaller icons for multiple display
         self.boardFlip = pygame.transform.flip(self.board, False, True)
 
     def flipDisplay(self, newState):

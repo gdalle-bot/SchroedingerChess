@@ -5,7 +5,7 @@ import numpy as np
 import pulp
 from collections import defaultdict
 
-import sunfish
+from . import sunfish
 
 colors = list(range(2))
 piece_numbers = list(range(16))
@@ -407,17 +407,17 @@ class ChessBoard():
             for n in major_piece_natures
         ]
 
-        z = pulp.LpVariable.dicts(
+        problem = pulp.LpProblem("Chess", pulp.LpMinimize)
+
+        z = problem.add_variable_dicts(
             name="z",
-            indexs=major_piece_variables,
+            indices=major_piece_variables,
             lowBound=0,
             upBound=1,
-            cat="Integer"
+            cat=pulp.LpInteger,
         )
 
-        problem = pulp.LpProblem("Chess", 1)
-
-        problem += 1
+        problem += 0
 
         for c in colors:
             for i in major_piece_numbers + promoted_numbers:
@@ -547,7 +547,7 @@ class ChessBoard():
                         "Current king not in check " + str(s)
                     )
 
-        status = problem.solve()
+        status = problem.solve(pulp.HiGHS(msg=False)).status
 
         return problem, status
 
@@ -562,7 +562,9 @@ class ChessBoard():
     def update_guess(self, problem):
         """Update guess with MIP solution."""
         for v in problem.variables():
-            if v.varValue is not None and v.varValue == 1:
+            if not v.name.startswith("z_"):
+                continue
+            if v.varValue is not None and round(v.varValue) == 1:
                 c, i, n = self.parse_variable(v)
                 self.pieces[c][i].nature_guess = n
 

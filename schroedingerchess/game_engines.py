@@ -3,11 +3,11 @@ from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet import reactor
 from twisted.python import log
 
-from display import ChessDisplay
+from .display import ChessDisplay
 
-from chess import ChessBoard, IllegalMove, LightBoard
+from .chess import ChessBoard, IllegalMove, LightBoard
 
-from client import ChessClientProtocol
+from .client import ChessClientProtocol
 
 from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 

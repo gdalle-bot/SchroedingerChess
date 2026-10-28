@@ -3,7 +3,7 @@ from twisted.internet import reactor
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet.defer import inlineCallbacks, Deferred
 
-from chess import ChessBoard, LightBoard, IllegalMove
+from .chess import ChessBoard, LightBoard, IllegalMove
 
 import json
 import time
@@ -301,8 +301,8 @@ class Game:
         self.black.disconnect()
 
 
-if __name__ == '__main__':
-
+def main():
+    """Start the game server, asking for the port on standard input."""
     address = input("Host:Port (localhost:6000): ")
     if not address:
         host, port = "localhost", 6000
@@ -312,3 +312,7 @@ if __name__ == '__main__':
     endpoint = TCP4ServerEndpoint(reactor, int(port))
     endpoint.listen(ChessServer())
     reactor.run()
+
+
+if __name__ == "__main__":
+    main()
