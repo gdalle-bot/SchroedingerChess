@@ -38,6 +38,22 @@ color_nature_to_icon = {
 }
 
 
+color_names = ["White", "Black"]
+nature_names = {
+    "K": "king",
+    "Q": "queen",
+    "R": "rook",
+    "B": "bishop",
+    "N": "knight",
+    "P": "pawn",
+}
+
+
+def square_name(x, y):
+    """Name of the square ``(x, y)`` in algebraic notation, like ``"e4"``."""
+    return "abcdefgh"[x] + str(y + 1)
+
+
 class IllegalMove(Exception):
     """Illegal move."""
 
@@ -540,28 +556,49 @@ class ChessBoard:
             self.pieces[c][i].nature_guess = n
 
     def trivial_test_move(self, x1, y1, x2, y2):
-        """Check obvious failures."""
+        """Check the reasons for a move to be illegal that do not need a solver.
+
+        :return: An error message explaining why the move is illegal, or None.
+        :raise TypeError: If the coordinates are not integers.
+        """
+        for v in (x1, y1, x2, y2):
+            if isinstance(v, bool) or not isinstance(v, (int, np.integer)):
+                raise TypeError(
+                    "Moves are given by four integer coordinates x1, y1, x2, y2 "
+                    f"between 0 and 7, got {(x1, y1, x2, y2)!r}. "
+                    'Use translate_move(("e2", "e4")) to convert algebraic notation.'
+                )
         if not self.on_board(x1, y1) or not self.on_board(x2, y2):
-            error = "Trying to move outside of the board"
-            return error
+            return (
+                "Coordinates must be between 0 and 7, "
+                f"got {(x1, y1)} -> {(x2, y2)}: this is outside of the board"
+            )
+        start, end = square_name(x1, y1), square_name(x2, y2)
         piece = self.grid[x1][y1]
         target_piece = self.grid[x2][y2]
         if piece is None:
-            error = "Trying to move the void"
-            return error
+            return f"There is no piece on {start}"
         cur_c = piece.color
         if self.time % 2 != cur_c:
-            error = "Trying to move out of turn"
-            return error
+            return (
+                f"It is {color_names[self.time % 2]}'s turn, but the piece on "
+                f"{start} is {color_names[cur_c]}: you cannot move out of turn"
+            )
         if target_piece is not None and target_piece.color == cur_c:
-            error = "Trying to eat a friend"
-            return error
+            return (
+                f"The piece on {start} cannot capture the piece on {end}, "
+                "which has the same color: you cannot eat a friend"
+            )
         if not self.move_exists(x1, y1, x2, y2):
-            error = "Trying to perform a move that doesn't exist in chess"
-            return error
+            return (
+                f"No chess piece can go from {start} to {end}: "
+                "this move doesn't exist in chess"
+            )
         if not self.free_trajectory(x1, y1, x2, y2):
-            error = "Trying to move through other pieces"
-            return error
+            return (
+                f"The path from {start} to {end} is blocked: "
+                "you cannot move through other pieces"
+            )
         if "P" in piece.possible_natures:
             if not (
                 (target_piece is None and self.pawn_could_reach(x1, y1, x2, y2, cur_c))
@@ -570,8 +607,10 @@ class ChessBoard:
                     and self.pawn_could_take(x1, y1, x2, y2, cur_c)
                 )
             ):
-                error = "Trying to perform an illegal pawn move"
-                return error
+                return (
+                    f"The pawn on {start} cannot go to {end}: "
+                    "this is an illegal pawn move"
+                )
         else:
             if not np.any(
                 [
@@ -579,12 +618,11 @@ class ChessBoard:
                     for n in piece.possible_natures
                 ]
             ):
-                error = (
-                    "Trying to move a piece in a way inconsistent "
-                    + "with one of its previous moves or preset "
-                    + "possible natures"
+                natures = "/".join(nature_names[n] for n in piece.possible_natures)
+                return (
+                    f"The piece on {start} can only be a {natures} after its "
+                    f"previous moves, and none of them can go to {end}"
                 )
-                return error
         return None
 
     def add_move_to_history(self, x1, y1, x2, y2, piece, target_piece):
@@ -655,11 +693,11 @@ class ChessBoard:
         self.delete_move_from_history(x1, y1, x2, y2, piece, target_piece)
 
         if solution is None:
-            error = (
-                "Trying to perform a move that is illegal for any "
-                + "initial piece configuration"
+            raise IllegalMove(
+                f"Moving from {square_name(x1, y1)} to {square_name(x2, y2)} is "
+                "illegal for any initial piece configuration: it would contradict "
+                "the previous moves, or leave the king in check"
             )
-            raise IllegalMove(error)
 
         if full_result:
             return solution
@@ -896,10 +934,7 @@ class LightBoard:
             )
 
     def move(self, x1, y1, x2, y2):
-        """Move a piece and update its possible natures.
-
-        Other undetermined pieces are marked as pending (``"E"``).
-        """
+        """Move a piece and update its possible natures."""
         i = self.getPieceIndex(x1, y1)
         if i is not None:
             piece = self.pieces[i]
@@ -913,19 +948,17 @@ class LightBoard:
                 piece2 = self.pieces[j]
                 self.setPiece(j, piece2["color"], False, piece2["natures"])
             # Move the main piece
+            # The natures of the other pieces are refined later by the solver.
+            # Until then, the current ones remain valid since natures can only
+            # be ruled out, so we keep them to avoid flickering.
             self.setPiece(i, piece["color"], (x2, y2), natures)
-            for x in range(8):
-                for y in range(8):
-                    if (x, y) != (x2, y2):
-                        k = self.getPieceIndex(x, y)
-                        if k is not None:
-                            piece = self.pieces[k]
-                            if len(piece["natures"]) > 1:
-                                self.setPiece(k, piece["color"], (x, y), "E")
 
     @staticmethod
     def possibleNaturesFromMove(x1, y1, x2, y2, color, natures):
-        """Filter the natures compatible with a move (``["E"]`` for a promotion)."""
+        """Filter the natures compatible with a move.
+
+        A pawn reaching the last rank can become a queen, rook, bishop or knight.
+        """
         h = x2 - x1
         v = y2 - y1
         output_natures = []
@@ -950,10 +983,8 @@ class LightBoard:
                 if (abs(h) == 2 and abs(v) == 1) or (abs(h) == 1 and abs(v) == 2):
                     output_natures.append("N")
             elif n == "P":
-                if color == 0 and y2 == 7:
-                    return ["E"]
-                elif color == 1 and y2 == 0:
-                    return ["E"]
+                if (color == 0 and y2 == 7) or (color == 1 and y2 == 0):
+                    return ["Q", "R", "B", "N"]
                 else:
                     output_natures.append("P")
             elif n == "E":

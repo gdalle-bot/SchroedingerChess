@@ -285,7 +285,8 @@ class Game:
         piece = self.chessBoard.grid[x1][y1]
         if piece is not None and piece.color != color:
             raise IllegalMove(
-                "Trying to move a place that does not belong to the player."
+                "This piece does not belong to you: "
+                "you cannot move your opponent's pieces"
             )
         self.chessBoard.move(x1, y1, x2, y2, disp=False)
         self.lightBoard.move(x1, y1, x2, y2)

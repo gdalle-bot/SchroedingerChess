@@ -85,8 +85,8 @@ def test_free_trajectory(cb):
     ("move", "error"),
     [
         ((0, 0, 0, 8), "outside of the board"),
-        ((4, 4, 4, 5), "move the void"),
-        ((4, 6, 4, 5), "out of turn"),
+        ((4, 4, 4, 5), "There is no piece on e5"),
+        ((4, 6, 4, 5), "It is White's turn, but the piece on e7 is Black"),
         ((0, 0, 1, 0), "eat a friend"),
         ((1, 0, 4, 2), "doesn't exist in chess"),
         ((0, 0, 0, 3), "through other pieces"),
@@ -106,3 +106,16 @@ def test_trivial_ok(cb):
 def test_translate_move(cb):
     assert cb.translate_move((4, 1, 4, 3)) == ("e2", "e4")
     assert cb.translate_move(("e2", "e4")) == (4, 1, 4, 3)
+
+
+def test_errors_name_the_squares(cb):
+    assert cb.trivial_test_move(4, 1, 4, 4) == (
+        "The pawn on e2 cannot go to e5: this is an illegal pawn move"
+    )
+    assert "a1 to a4 is blocked" in cb.trivial_test_move(0, 0, 0, 3)
+
+
+@pytest.mark.parametrize("move", [("e2", "e4"), (4.0, 1, 4, 3), (True, 1, 4, 3)])
+def test_wrong_coordinate_types(cb, move):
+    with pytest.raises(TypeError, match="translate_move"):
+        cb.trivial_test_move(*move, *([0] * (4 - len(move))))
