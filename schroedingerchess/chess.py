@@ -1,9 +1,9 @@
 """First test for chess implementation."""
 
 import itertools
+
 import numpy as np
 import pulp
-from collections import defaultdict
 
 from . import sunfish
 
@@ -16,13 +16,7 @@ promoted_numbers = list(range(16, 24))
 all_natures = ["K", "Q", "R", "B", "N", "P"]
 major_piece_natures = ["K", "Q", "R", "B", "N"]
 
-max_quantity = {
-    "K": 1,
-    "Q": 1,
-    "R": 2,
-    "B": 2,
-    "N": 2
-}
+max_quantity = {"K": 1, "Q": 1, "R": 2, "B": 2, "N": 2}
 
 color_nature_to_icon = {
     0: {
@@ -40,7 +34,7 @@ color_nature_to_icon = {
         "B": "♝",
         "N": "♞",
         "P": "♟",
-    }
+    },
 }
 
 
@@ -50,7 +44,7 @@ class IllegalMove(Exception):
     pass
 
 
-class ChessPiece():
+class ChessPiece:
     """Chess piece manipulation."""
 
     def __init__(self, c, i, n, p, b=None):
@@ -87,51 +81,37 @@ class ChessPiece():
         else:
             color_name = self.color_name
         if not guess and not natures:
-            return (
-                color_name +
-                str(self.number) +
-                " " * (2 - len(str(self.number)))
-            )
+            return color_name + str(self.number) + " " * (2 - len(str(self.number)))
         elif guess:
             return color_nature_to_icon[self.color][self.nature_guess] + " "
-            return (
-                color_name +
-                self.nature_guess + " "
-            )
+            return color_name + self.nature_guess + " "
         elif natures:
-            return (
-                color_name +
-                str(len(self.board.all_legal_natures(self))) + " "
-            )
+            return color_name + str(len(self.board.all_legal_natures(self))) + " "
 
 
-class ChessBoard():
+class ChessBoard:
     """Chess board manipulation."""
 
     def __init__(self):
         """Initialize the board."""
         # Colorized lists of pieces
-        white_pieces = [
-            ChessPiece(c=0, i=i, n=None, p=(i, 0), b=self)
-            for i in major_piece_numbers
-        ] + [
-            ChessPiece(c=0, i=i, n="P", p=(i - 8, 1), b=self)
-            for i in pawn_numbers
-        ] + [
-            ChessPiece(c=0, i=i, n=None, p=None, b=self)
-            for i in promoted_numbers
-        ]
+        white_pieces = (
+            [
+                ChessPiece(c=0, i=i, n=None, p=(i, 0), b=self)
+                for i in major_piece_numbers
+            ]
+            + [ChessPiece(c=0, i=i, n="P", p=(i - 8, 1), b=self) for i in pawn_numbers]
+            + [ChessPiece(c=0, i=i, n=None, p=None, b=self) for i in promoted_numbers]
+        )
 
-        black_pieces = [
-            ChessPiece(c=1, i=i, n=None, p=(i, 7), b=self)
-            for i in major_piece_numbers
-        ] + [
-            ChessPiece(c=1, i=i, n="P", p=(i - 8, 6), b=self)
-            for i in pawn_numbers
-        ] + [
-            ChessPiece(c=1, i=i, n=None, p=None, b=self)
-            for i in promoted_numbers
-        ]
+        black_pieces = (
+            [
+                ChessPiece(c=1, i=i, n=None, p=(i, 7), b=self)
+                for i in major_piece_numbers
+            ]
+            + [ChessPiece(c=1, i=i, n="P", p=(i - 8, 6), b=self) for i in pawn_numbers]
+            + [ChessPiece(c=1, i=i, n=None, p=None, b=self) for i in promoted_numbers]
+        )
 
         self.pieces = [white_pieces, black_pieces]
 
@@ -198,22 +178,10 @@ class ChessBoard():
         cb = ChessBoard()
         cols = ["R", "N", "B", "Q", "K", "B", "N", "R"]
         for x in range(8):
-            cb.grid[x][0] = ChessPiece(
-                c=0, i=x, n=cols[x],
-                b=cb, x=x, y=0
-            )
-            cb.grid[x][1] = ChessPiece(
-                c=0, i=8 + x, n="P",
-                b=cb, x=x, y=1
-            )
-            cb.grid[x][6] = ChessPiece(
-                c=1, i=8 + x, n="P",
-                b=cb, x=x, y=6
-            )
-            cb.grid[x][7] = ChessPiece(
-                c=1, i=x, n=cols[x],
-                b=cb, x=x, y=7
-            )
+            cb.grid[x][0] = ChessPiece(c=0, i=x, n=cols[x], b=cb, x=x, y=0)
+            cb.grid[x][1] = ChessPiece(c=0, i=8 + x, n="P", b=cb, x=x, y=1)
+            cb.grid[x][6] = ChessPiece(c=1, i=8 + x, n="P", b=cb, x=x, y=6)
+            cb.grid[x][7] = ChessPiece(c=1, i=x, n=cols[x], b=cb, x=x, y=7)
         return cb
 
     def on_board(self, x1, y1):
@@ -233,13 +201,9 @@ class ChessBoard():
         h = x2 - x1
         v = y2 - y1
         pawn_dir = 1 if c == 0 else -1
-        has_not_moved = (
-            (c == 0 and y1 == 1) or
-            (c == 1 and y1 == 6)
-        )
-        return (
-            (h == 0 and v == pawn_dir) or
-            (h == 0 and v == 2 * pawn_dir and has_not_moved)
+        has_not_moved = (c == 0 and y1 == 1) or (c == 1 and y1 == 6)
+        return (h == 0 and v == pawn_dir) or (
+            h == 0 and v == 2 * pawn_dir and has_not_moved
         )
 
     def pawn_could_take(self, x1, y1, x2, y2, c):
@@ -247,7 +211,7 @@ class ChessBoard():
         h = x2 - x1
         v = y2 - y1
         pawn_dir = 1 if c == 0 else -1
-        return (abs(h) == 1 and v == pawn_dir)
+        return abs(h) == 1 and v == pawn_dir
 
     def move_exists(self, x1, y1, x2, y2):
         """Verify that a move exists in chess."""
@@ -277,29 +241,19 @@ class ChessBoard():
         h = x2 - x1
         v = y2 - y1
         if n == "K":
-            return (
-                abs(h) <= 1 and
-                abs(v) <= 1 and
-                (h, v) != (0, 0)
-            )
+            return abs(h) <= 1 and abs(v) <= 1 and (h, v) != (0, 0)
         elif n == "Q":
             return (
-                (abs(h) == 0 and abs(v) >= 1) or
-                (abs(v) == 0 and abs(h) >= 1) or
-                (abs(h) == abs(v) and abs(h) >= 1)
+                (abs(h) == 0 and abs(v) >= 1)
+                or (abs(v) == 0 and abs(h) >= 1)
+                or (abs(h) == abs(v) and abs(h) >= 1)
             )
         elif n == "R":
-            return (
-                (abs(h) == 0 and abs(v) >= 1) or
-                (abs(v) == 0 and abs(h) >= 1)
-            )
+            return (abs(h) == 0 and abs(v) >= 1) or (abs(v) == 0 and abs(h) >= 1)
         elif n == "B":
-            return (abs(h) == abs(v) and abs(h) >= 1)
+            return abs(h) == abs(v) and abs(h) >= 1
         elif n == "N":
-            return (
-                (abs(h) == 2 and abs(v) == 1) or
-                (abs(h) == 1 and abs(v) == 2)
-            )
+            return (abs(h) == 2 and abs(v) == 1) or (abs(h) == 1 and abs(v) == 2)
         elif n == "P":
             target_piece = self.grid[x2][y2]
             if target_piece is None:
@@ -314,10 +268,7 @@ class ChessBoard():
         h = x2 - x1
         v = y2 - y1
         # Knight move
-        if (
-            (abs(h) == 2 and abs(v) == 1) or
-            (abs(h) == 1 and abs(v) == 2)
-        ):
+        if (abs(h) == 2 and abs(v) == 1) or (abs(h) == 1 and abs(v) == 2):
             return True
         # Other move
         dir_h = np.sign(h)
@@ -335,7 +286,7 @@ class ChessBoard():
             x_steps = range(x1, x2, dir_h)
             y_steps = range(y1, y2, dir_v)
         # Check all squares between 1 and 2 (strictly)
-        for (x, y) in zip(x_steps[1:], y_steps[1:]):
+        for x, y in zip(x_steps[1:], y_steps[1:]):
             if self.grid[x][y] is not None:
                 return False
 
@@ -371,20 +322,15 @@ class ChessBoard():
                 if piece is None:
                     continue
                 c, i = piece.color, piece.number
-                if (
-                    i in major_piece_numbers or
-                    i in promoted_numbers
-                ):
+                if i in major_piece_numbers or i in promoted_numbers:
                     for s in range(64):
                         xs, ys = self.get_coord(s)
                         for n in piece.possible_natures:
                             n_ind = all_natures.index(n)
                             if (
                                 self.move_exists(x, y, xs, ys)
-                                and
-                                self.free_trajectory(x, y, xs, ys)
-                                and
-                                self.possible_move(x, y, xs, ys, n, c)
+                                and self.free_trajectory(x, y, xs, ys)
+                                and self.possible_move(x, y, xs, ys, n, c)
                             ):
                                 attack[s, c, i, n_ind] = 1
                 elif i in pawn_numbers:
@@ -421,10 +367,9 @@ class ChessBoard():
 
         for c in colors:
             for i in major_piece_numbers + promoted_numbers:
-
                 problem += (
                     sum([z[(c, i, n)] for n in major_piece_natures]) == 1,
-                    "One nature " + str((c, i))
+                    "One nature " + str((c, i)),
                 )
 
         for c in colors:
@@ -432,15 +377,14 @@ class ChessBoard():
                 if n == "K":
                     problem += (
                         sum([z[(c, i, "K")] for i in major_piece_numbers]) == 1,
-                        "Always one king " + str(c)
+                        "Always one king " + str(c),
                     )
 
                 else:
                     problem += (
-                        sum(
-                            [z[(c, i, n)] for i in major_piece_numbers]
-                        ) <= max_quantity[n],
-                        "Maximum quantity " + str((c, n))
+                        sum([z[(c, i, n)] for i in major_piece_numbers])
+                        <= max_quantity[n],
+                        "Maximum quantity " + str((c, n)),
                     )
 
         for c in colors:
@@ -450,21 +394,18 @@ class ChessBoard():
         for c in colors:
             problem += (
                 sum([z[(c, i, "B")] for i in [1, 3, 5, 7]]) == 1,
-                "One " + str(c) + "-square bishop " + str(c)
+                "One " + str(c) + "-square bishop " + str(c),
             )
             problem += (
                 sum([z[(c, i, "B")] for i in [0, 2, 4, 6]]) == 1,
-                "One " + str(1 - c) + "-square bishop " + str(c)
+                "One " + str(1 - c) + "-square bishop " + str(c),
             )
 
         for c in colors:
             for i in major_piece_numbers + promoted_numbers:
                 piece = self.pieces[c][i]
                 for n in piece.forbidden_natures:
-                    problem += (
-                        z[(c, i, n)] == 0,
-                        "Forbidden nature " + str((c, i, n))
-                    )
+                    problem += (z[(c, i, n)] == 0, "Forbidden nature " + str((c, i, n)))
 
         T = self.time
 
@@ -474,38 +415,38 @@ class ChessBoard():
                 for n in move_forbidden_natures:
                     problem += (
                         z[(c, i, n)] == 0,
-                        "Move-forbidden nature " + str((t, c, i, n))
+                        "Move-forbidden nature " + str((t, c, i, n)),
                     )
 
         for t in range(1, T + 1):
             cur_c = t % 2
             prev_c = 1 - cur_c
             for s in range(64):
-
                 if self.attacks[t][s, cur_c, :, :].sum() < 0.5:
                     continue
                 if self.positions[t][s, prev_c, major_piece_numbers].sum() < 0.5:
                     continue
 
-                dangers = sum([
-                    self.attacks[t][s, cur_c, i, n_ind] * z[(cur_c, i, n)]
-                    for i in major_piece_numbers + promoted_numbers
-                    for (n_ind, n) in enumerate(major_piece_natures)
-                    if self.attacks[t][s, cur_c, i, n_ind] > 0.5
-                ]) + sum([
-                    self.attacks[t][s, cur_c, i, -1]
-                    for i in pawn_numbers
-                ])
+                dangers = sum(
+                    [
+                        self.attacks[t][s, cur_c, i, n_ind] * z[(cur_c, i, n)]
+                        for i in major_piece_numbers + promoted_numbers
+                        for (n_ind, n) in enumerate(major_piece_natures)
+                        if self.attacks[t][s, cur_c, i, n_ind] > 0.5
+                    ]
+                ) + sum([self.attacks[t][s, cur_c, i, -1] for i in pawn_numbers])
 
-                king = sum([
-                    self.positions[t][s, prev_c, i] * z[(prev_c, i, "K")]
-                    for i in major_piece_numbers
-                    if self.positions[t][s, prev_c, i] > 0.5
-                ])
+                king = sum(
+                    [
+                        self.positions[t][s, prev_c, i] * z[(prev_c, i, "K")]
+                        for i in major_piece_numbers
+                        if self.positions[t][s, prev_c, i] > 0.5
+                    ]
+                )
 
                 problem += (
                     16 * (1 - king) >= dangers,
-                    "No king left in check " + str((t, prev_c, s))
+                    "No king left in check " + str((t, prev_c, s)),
                 )
 
         if check is not None:
@@ -513,38 +454,38 @@ class ChessBoard():
             prev_c = 1 - cur_c
 
             for s in range(64):
-
                 if self.attacks[T][s, prev_c, :, :].sum() < 0.5:
                     continue
                 if self.positions[T][s, cur_c, major_piece_numbers].sum() < 0.5:
                     continue
 
-                current_dangers = sum([
-                    self.attacks[T][s, prev_c, i, n_ind] * z[(prev_c, i, n)]
-                    for i in major_piece_numbers + promoted_numbers
-                    for (n_ind, n) in enumerate(major_piece_natures)
-                    if self.attacks[T][s, prev_c, i, n_ind] > 0.5
-                ]) + sum([
-                    self.attacks[T][s, prev_c, i, -1]
-                    for i in pawn_numbers
-                ])
+                current_dangers = sum(
+                    [
+                        self.attacks[T][s, prev_c, i, n_ind] * z[(prev_c, i, n)]
+                        for i in major_piece_numbers + promoted_numbers
+                        for (n_ind, n) in enumerate(major_piece_natures)
+                        if self.attacks[T][s, prev_c, i, n_ind] > 0.5
+                    ]
+                ) + sum([self.attacks[T][s, prev_c, i, -1] for i in pawn_numbers])
 
-                current_king = sum([
-                    self.positions[T][s, cur_c, i] * z[(cur_c, i, "K")]
-                    for i in major_piece_numbers
-                    if self.positions[T][s, cur_c, i] > 0.5
-                ])
+                current_king = sum(
+                    [
+                        self.positions[T][s, cur_c, i] * z[(cur_c, i, "K")]
+                        for i in major_piece_numbers
+                        if self.positions[T][s, cur_c, i] > 0.5
+                    ]
+                )
 
-                if check == True:
+                if check is True:
                     problem += (
                         current_king <= current_dangers,
-                        "Current king in check " + str(s)
+                        "Current king in check " + str(s),
                     )
 
-                elif check == False:
+                elif check is False:
                     problem += (
                         16 * (1 - current_king) >= current_dangers,
-                        "Current king not in check " + str(s)
+                        "Current king not in check " + str(s),
                     )
 
         status = problem.solve(pulp.HiGHS(msg=False)).status
@@ -582,10 +523,7 @@ class ChessBoard():
         if self.time % 2 != cur_c:
             error = "Trying to move out of turn"
             return error
-        if (
-            target_piece is not None and
-            target_piece.color == cur_c
-        ):
+        if target_piece is not None and target_piece.color == cur_c:
             error = "Trying to eat a friend"
             return error
         if not self.move_exists(x1, y1, x2, y2):
@@ -596,25 +534,25 @@ class ChessBoard():
             return error
         if "P" in piece.possible_natures:
             if not (
-                (
-                    target_piece is None and
-                    self.pawn_could_reach(x1, y1, x2, y2, cur_c)
-                ) or (
-                    target_piece is not None and
-                    self.pawn_could_take(x1, y1, x2, y2, cur_c)
+                (target_piece is None and self.pawn_could_reach(x1, y1, x2, y2, cur_c))
+                or (
+                    target_piece is not None
+                    and self.pawn_could_take(x1, y1, x2, y2, cur_c)
                 )
             ):
                 error = "Trying to perform an illegal pawn move"
                 return error
         else:
-            if not np.any([
-                self.possible_move(x1, y1, x2, y2, n, cur_c)
-                for n in piece.possible_natures
-            ]):
+            if not np.any(
+                [
+                    self.possible_move(x1, y1, x2, y2, n, cur_c)
+                    for n in piece.possible_natures
+                ]
+            ):
                 error = (
-                    "Trying to move a piece in a way inconsistent " +
-                    "with one of its previous moves or preset " +
-                    "possible natures"
+                    "Trying to move a piece in a way inconsistent "
+                    + "with one of its previous moves or preset "
+                    + "possible natures"
                 )
                 return error
         return None
@@ -624,14 +562,11 @@ class ChessBoard():
         cur_c, i = piece.color, piece.number
         self.time += 1
         self.moves.append((x1, y1, x2, y2))
-        self.nature_eliminations.append(
-            self.nature_elimination(piece, x1, y1, x2, y2))
+        self.nature_eliminations.append(self.nature_elimination(piece, x1, y1, x2, y2))
         self.grid[x1][y1] = None
         promotion = (
-            ((y2 == 7 and cur_c == 0) or (y2 == 0 and cur_c == 1))
-            and
-            "P" in piece.possible_natures
-        )
+            (y2 == 7 and cur_c == 0) or (y2 == 0 and cur_c == 1)
+        ) and "P" in piece.possible_natures
         if promotion:
             promoted_piece = self.pieces[cur_c][i + 8]
             self.grid[x2][y2] = promoted_piece
@@ -660,10 +595,8 @@ class ChessBoard():
         if target_piece is not None:
             target_piece.position = (x2, y2)
         promotion = (
-            ((y2 == 7 and cur_c == 0) or (y2 == 0 and cur_c == 1))
-            and
-            "P" in piece.possible_natures
-        )
+            (y2 == 7 and cur_c == 0) or (y2 == 0 and cur_c == 1)
+        ) and "P" in piece.possible_natures
         if promotion:
             promoted_piece = self.pieces[cur_c][i + 8]
             promoted_piece.position = None
@@ -693,8 +626,8 @@ class ChessBoard():
 
         if status != 1:
             error = (
-                "Trying to perform a move that is illegal for any " +
-                "initial piece configuration"
+                "Trying to perform a move that is illegal for any "
+                + "initial piece configuration"
             )
             raise IllegalMove(error)
 
@@ -712,7 +645,8 @@ class ChessBoard():
 
         # Update guesses and heuristics
         piece.possible_natures = [
-            n for n in piece.possible_natures
+            n
+            for n in piece.possible_natures
             if n not in self.nature_eliminations[-1][2]
         ]
 
@@ -736,9 +670,7 @@ class ChessBoard():
     def legal_moves_from_gen(self, x1, y1):
         """Search all legal moves starting from a given square."""
         X2, Y2 = range(8), range(8)
-        couples = np.random.permutation(
-            list(itertools.product(X2, Y2))
-        )
+        couples = np.random.permutation(list(itertools.product(X2, Y2)))
         for x2, y2 in couples:
             try:
                 self.test_move(x1, y1, x2, y2, full_result=False)
@@ -749,9 +681,7 @@ class ChessBoard():
     def all_legal_moves_gen(self):
         """Search all legal move at a given turn."""
         X1, Y1, X2, Y2 = range(8), range(8), range(8), range(8)
-        quadruples = np.random.permutation(
-            list(itertools.product(X1, Y1, X2, Y2))
-        )
+        quadruples = np.random.permutation(list(itertools.product(X1, Y1, X2, Y2)))
         for x1, y1, x2, y2 in quadruples:
             try:
                 self.test_move(x1, y1, x2, y2, full_result=False)
@@ -766,27 +696,19 @@ class ChessBoard():
         return sorted(list(self.all_legal_moves_gen()))
 
     def sunfish_move_suggestion(self, secs):
-        board = (
-            "         \n"
-            "         \n"
-        )
+        board = "         \n         \n"
         for y in reversed(range(8)):
-            board += ' '
+            board += " "
             for x in range(8):
                 if self.grid[x][y] is None:
-                    board += '.'
+                    board += "."
                 elif self.grid[x][y].color_name == "W":
                     board += self.grid[x][y].nature_guess
                 else:
                     board += self.grid[x][y].nature_guess.lower()
-            board += '\n'
-        board += (
-            "         \n"
-            "         \n"
-        )
-        pos = sunfish.Position(
-            board, 0, (False, False), (False, False), 0, 0
-        )
+            board += "\n"
+        board += "         \n         \n"
+        pos = sunfish.Position(board, 0, (False, False), (False, False), 0, 0)
         if self.time % 2 == 1:
             pos = pos.rotate()
 
@@ -795,7 +717,7 @@ class ChessBoard():
         if move is None:
             raise IllegalMove("Sunfish didn't find a feasible move")
         if self.time % 2 == 1:
-            move = (119-move[0], 119-move[1])
+            move = (119 - move[0], 119 - move[1])
         first_square, last_square = sunfish.render(move[0]), sunfish.render(move[1])
         x1, y1, x2, y2 = self.translate_move((first_square, last_square))
         return x1, y1, x2, y2
@@ -826,7 +748,7 @@ class ChessBoard():
             other_n for other_n in major_piece_natures if other_n != n
         ]
         problem, status = self.quantum_explanation()
-        is_legal_nature_n = (status == 1)
+        is_legal_nature_n = status == 1
         piece.forbidden_natures = []
         return is_legal_nature_n
 
@@ -845,8 +767,8 @@ class ChessBoard():
             return "Legal moves still exist"
         problem1, status1 = self.quantum_explanation(check=True)
         problem2, status2 = self.quantum_explanation(check=False)
-        checkmate_possible = (status1 == 1)
-        stalemate_possible = (status2 == 1)
+        checkmate_possible = status1 == 1
+        stalemate_possible = status2 == 1
         if checkmate_possible and stalemate_possible:
             return "Result unclear"
         elif checkmate_possible:
@@ -891,10 +813,7 @@ class ChessBoard():
                     list_moves = input("List possible moves [y/n] ")
                     if list_moves == "y":
                         legal_moves = self.all_legal_moves()
-                        print([
-                            self.translate_move(move)
-                            for move in legal_moves
-                        ])
+                        print([self.translate_move(move) for move in legal_moves])
                         if len(legal_moves) == 0:
                             print(self.end_game())
                             return
@@ -903,9 +822,7 @@ class ChessBoard():
                     last_square = input("...to ")
                     if not (first_square + last_square).isalnum():
                         print("This move is not a chess move")
-                    x1, y1, x2, y2 = self.translate_move(
-                        (first_square, last_square)
-                    )
+                    x1, y1, x2, y2 = self.translate_move((first_square, last_square))
                     try:
                         self.move(x1, y1, x2, y2, disp=True)
                         valid_player_move = True
@@ -913,28 +830,38 @@ class ChessBoard():
                         print(e)
 
 
-class LightBoard():
+class LightBoard:
     def __init__(self):
         self.pieces = []
         for j in range(8):
-            self.pieces.append({"position": (j, 0), "color": 0, "natures": major_piece_natures})
+            self.pieces.append(
+                {"position": (j, 0), "color": 0, "natures": major_piece_natures}
+            )
         for j in range(8):
             self.pieces.append({"position": (j, 1), "color": 0, "natures": ["P"]})
         for j in range(8):
-            self.pieces.append({"position": None, "color": 0, "natures": major_piece_natures})
+            self.pieces.append(
+                {"position": None, "color": 0, "natures": major_piece_natures}
+            )
         for j in range(8):
-            self.pieces.append({"position": (j, 7), "color": 1, "natures": major_piece_natures})
+            self.pieces.append(
+                {"position": (j, 7), "color": 1, "natures": major_piece_natures}
+            )
         for j in range(8):
             self.pieces.append({"position": (j, 6), "color": 1, "natures": ["P"]})
         for j in range(8):
-            self.pieces.append({"position": None, "color": 1, "natures": major_piece_natures})
+            self.pieces.append(
+                {"position": None, "color": 1, "natures": major_piece_natures}
+            )
 
     def move(self, x1, y1, x2, y2):
         i = self.getPieceIndex(x1, y1)
         if i is not None:
             piece = self.pieces[i]
-            natures = self.possibleNaturesFromMove(x1, y1, x2, y2, piece["color"], piece["natures"])
-            assert(len(natures) >= 1)
+            natures = self.possibleNaturesFromMove(
+                x1, y1, x2, y2, piece["color"], piece["natures"]
+            )
+            assert len(natures) >= 1
             # Mark the target box as a dead piece if necessary
             j = self.getPieceIndex(x2, y2)
             if j is not None:
@@ -961,7 +888,11 @@ class LightBoard():
                 if abs(h) <= 1 and abs(v) <= 1 and (h, v) != (0, 0):
                     output_natures.append("K")
             elif n == "Q":
-                if (abs(h) == 0 and abs(v) >= 1) or (abs(v) == 0 and abs(h) >= 1) or (abs(h) == abs(v) and abs(h) >= 1):
+                if (
+                    (abs(h) == 0 and abs(v) >= 1)
+                    or (abs(v) == 0 and abs(h) >= 1)
+                    or (abs(h) == abs(v) and abs(h) >= 1)
+                ):
                     output_natures.append("Q")
             elif n == "R":
                 if (abs(h) == 0 and abs(v) >= 1) or (abs(v) == 0 and abs(h) >= 1):
@@ -988,11 +919,7 @@ class LightBoard():
         """i is the index of the piece in self.pieces (same as ChessBoard.pieces)"""
         if position is not None and position is not False:
             position = (int(position[0]), int(position[1]))
-        self.pieces[i] = {
-            "position": position,
-            "color": int(color),
-            "natures": natures
-        }
+        self.pieces[i] = {"position": position, "color": int(color), "natures": natures}
 
     def getPiece(self, x, y):
         for piece in self.pieces:
@@ -1011,7 +938,9 @@ class LightBoard():
         return None
 
     def getDeadPieces(self, color):
-        return [p for p in self.pieces if p["color"] == color and p["position"] == False]
+        return [
+            p for p in self.pieces if p["color"] == color and p["position"] is False
+        ]
 
     def wrapUp(self):
         return self.pieces
