@@ -37,10 +37,6 @@ test = [
 ]
 dev = [{ include-group = "test" }, "ruff>=0.15"]
 
-[tool.ruff]
-# sunfish.py is a vendored copy of https://github.com/thomasahle/sunfish
-extend-exclude = ["schroedingerchess/sunfish.py"]
-
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]
 

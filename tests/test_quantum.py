@@ -84,10 +84,18 @@ def test_promotion():
     assert "K" not in cb.all_legal_natures(promoted)
 
 
+def test_auto_move_falls_back_on_legal_move(cb, monkeypatch):
+    # Regression: an illegal engine suggestion used to be returned anyway
+    monkeypatch.setattr(cb, "engine_move_suggestions", lambda depth: [(4, 1, 4, 5)])
+    move = cb.auto_move(intelligent=True)
+    assert move != (4, 1, 4, 5)
+    assert cb.test_move(*move)
+
+
 def test_auto_move(cb):
     x1, y1, x2, y2 = cb.auto_move(intelligent=False)
     assert cb.test_move(x1, y1, x2, y2)
-    x1, y1, x2, y2 = cb.auto_move(intelligent=True, secs=0.1)
+    x1, y1, x2, y2 = cb.auto_move(intelligent=True)
     assert cb.test_move(x1, y1, x2, y2)
 
 
