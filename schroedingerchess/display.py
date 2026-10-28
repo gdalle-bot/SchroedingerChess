@@ -1,18 +1,15 @@
 """Display chess board."""
 
-import sys
 import os
-import pygame
 
-from .chess import ChessPiece, ChessBoard, IllegalMove
+import pygame
 
 ASSETS_DIR = os.path.dirname(os.path.abspath(__file__))
 TITLE_FONT = os.path.join(ASSETS_DIR, "fonts", "CFRemingtonTypewriter-Regul.ttf")
 
 
-class InputBox():
-
-    def __init__(self, x, y, w, h, text=''):
+class InputBox:
+    def __init__(self, x, y, w, h, text=""):
         self.COLOR_INACTIVE = (230, 230, 230)
         self.COLOR_ACTIVE = (255, 255, 255)
         self.FONT = pygame.font.SysFont("Arial", 20)
@@ -53,12 +50,12 @@ class InputBox():
         screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
 
 
-class ChessDisplay():
+class ChessDisplay:
     """Display of the chess board."""
 
     def __init__(self, gameEngine):
         """Init."""
-        os.environ['SDL_VIDEO_CENTERED'] = '1'
+        os.environ["SDL_VIDEO_CENTERED"] = "1"
         self.width = 600
         self.height = 600
         self.pane_width = 300
@@ -66,7 +63,6 @@ class ChessDisplay():
         self.total_height = self.height
 
         pygame.init()
-        # self.screen = pygame.display.set_mode((self.total_width, self.total_height), pygame.RESIZABLE)
         self.screen = pygame.display.set_mode((self.total_width, self.total_height))
         pygame.display.set_caption("Schroedinger Chess Game")
 
@@ -81,7 +77,7 @@ class ChessDisplay():
         self.gameEngine = gameEngine
 
         self.selectedBox = None  # The box which has been clicked on
-        self.last_move = (-1,-1,-1,-1) # x1, y1, x2, y2 coordinates
+        self.last_move = (-1, -1, -1, -1)  # x1, y1, x2, y2 coordinates
 
         self.flip = False  # Should the ChessBoard be upside down
 
@@ -101,10 +97,20 @@ class ChessDisplay():
         self.automoveSelection = "NONE"
         self.finishSelection = "NONE"
 
-        self.name = InputBox(int(0.458 * self.width), int(0.6875 *
-                                                          self.height) - 40, int(self.width / 3), 32, text="lao")
-        self.address = InputBox(int(0.458 * self.width), int(0.6875 *
-                                                             self.height) + 10, int(self.width / 3), 32, text="127.0.0.1:6000")
+        self.name = InputBox(
+            int(0.458 * self.width),
+            int(0.6875 * self.height) - 40,
+            int(self.width / 3),
+            32,
+            text="lao",
+        )
+        self.address = InputBox(
+            int(0.458 * self.width),
+            int(0.6875 * self.height) + 10,
+            int(self.width / 3),
+            32,
+            text="127.0.0.1:6000",
+        )
         self.input_boxes = [self.name, self.address]
         self.clock = pygame.time.Clock()
         self.selected_color = "W"
@@ -120,7 +126,7 @@ class ChessDisplay():
             self.drawMenu()
 
     def setTwoPlayersOnOneBoardMode(self):
-        """ Sets the game engine on the two-players-on-one-board mode."""
+        """Sets the game engine on the two-players-on-one-board mode."""
         if self.state == "MENU":
             self.state = "PLAYING"
             self.mode = "LOCAL"
@@ -129,7 +135,7 @@ class ChessDisplay():
             self.addMessage("Started local game")
 
     def setOnePlayerOnNetworkMode(self, name, address, color):
-        """ Sets the game engine on the one-player on network mode."""
+        """Sets the game engine on the one-player on network mode."""
         if self.state == "MENU":
             self.state = "PLAYING"
             self.mode = "ONLINE"
@@ -145,39 +151,83 @@ class ChessDisplay():
         for y in range(8):
             for x in range(8):
                 if self.check_positions[x][y]:
-                    pygame.draw.rect(self.screen, pygame.Color(150, 0, 0, 255), [
-                        (x * self.width) // 8, (self.flipY(y) * self.height) // 8,
-                        self.width // 8, self.height // 8], 5)
+                    pygame.draw.rect(
+                        self.screen,
+                        pygame.Color(150, 0, 0, 255),
+                        [
+                            (x * self.width) // 8,
+                            (self.flipY(y) * self.height) // 8,
+                            self.width // 8,
+                            self.height // 8,
+                        ],
+                        5,
+                    )
 
                 if self.checkmate_positions[x][y]:
-                    pygame.draw.rect(self.screen, pygame.Color(255, 0, 0, 255), [
-                        (x * self.width) // 8, (self.flipY(y) * self.height) // 8,
-                        self.width // 8, self.height // 8], 5)
+                    pygame.draw.rect(
+                        self.screen,
+                        pygame.Color(255, 0, 0, 255),
+                        [
+                            (x * self.width) // 8,
+                            (self.flipY(y) * self.height) // 8,
+                            self.width // 8,
+                            self.height // 8,
+                        ],
+                        5,
+                    )
 
-                if self.last_move[0] >= 0: # If turn > 0
+                if self.last_move[0] >= 0:  # If turn > 0
                     x1, y1, x2, y2 = self.last_move
-                    pygame.draw.rect(self.screen, pygame.Color(0, 100, 0, 255), [
-                        (x1 * self.width) // 8, (self.flipY(y1) * self.height) // 8,
-                        self.width // 8, self.height // 8], 3)
-                    pygame.draw.rect(self.screen, pygame.Color(0, 180, 0, 255), [
-                        (x2 * self.width) // 8, (self.flipY(y2) * self.height) // 8,
-                        self.width // 8, self.height // 8], 3)
+                    pygame.draw.rect(
+                        self.screen,
+                        pygame.Color(0, 100, 0, 255),
+                        [
+                            (x1 * self.width) // 8,
+                            (self.flipY(y1) * self.height) // 8,
+                            self.width // 8,
+                            self.height // 8,
+                        ],
+                        3,
+                    )
+                    pygame.draw.rect(
+                        self.screen,
+                        pygame.Color(0, 180, 0, 255),
+                        [
+                            (x2 * self.width) // 8,
+                            (self.flipY(y2) * self.height) // 8,
+                            self.width // 8,
+                            self.height // 8,
+                        ],
+                        3,
+                    )
 
                 piece = lightBoard.getPiece(x, y)
                 if piece is not None:
-                    isSelection = self.selectedBox is not None and self.selectedBox[0] == x and self.selectedBox[1] == self.flipY(y)
-                    self.draw_piece(color=piece["color"],
-                                    natures=piece["natures"],
-                                    x=(x * self.width) // 8,
-                                    y=(self.flipY(y) * self.height) // 8,
-                                    size=self.height // 8,
-                                    extended=isSelection)
+                    isSelection = (
+                        self.selectedBox is not None
+                        and self.selectedBox[0] == x
+                        and self.selectedBox[1] == self.flipY(y)
+                    )
+                    self.draw_piece(
+                        color=piece["color"],
+                        natures=piece["natures"],
+                        x=(x * self.width) // 8,
+                        y=(self.flipY(y) * self.height) // 8,
+                        size=self.height // 8,
+                        extended=isSelection,
+                    )
                     if isSelection:
-                        pygame.draw.rect(self.screen, pygame.Color(0,0,0), [
-                            (x * self.width) // 8,
-                            (self.flipY(y) * self.height) // 8,
-                            self.width // 8, self.height // 8
-                        ], int(0.00625 * self.width))
+                        pygame.draw.rect(
+                            self.screen,
+                            pygame.Color(0, 0, 0),
+                            [
+                                (x * self.width) // 8,
+                                (self.flipY(y) * self.height) // 8,
+                                self.width // 8,
+                                self.height // 8,
+                            ],
+                            int(0.00625 * self.width),
+                        )
 
         pygame.display.flip()
 
@@ -213,7 +263,7 @@ class ChessDisplay():
         self.last_move = (x1, y1, x2, y2)
 
     def update(self):
-        """ Updates the frame."""
+        """Updates the frame."""
         events = pygame.event.get()
         if self.state == "MENU":
             self.updateMenu(events)
@@ -243,12 +293,28 @@ class ChessDisplay():
 
                 if event.type == pygame.MOUSEMOTION:
                     mouse = event.pos
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h and mouse[1] < abs_h + h:
-                        if self.menuSelection != "LOCAL" and self.menuSelection != "LOCAL_DOWN":
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h
+                        and mouse[1] < abs_h + h
+                    ):
+                        if (
+                            self.menuSelection != "LOCAL"
+                            and self.menuSelection != "LOCAL_DOWN"
+                        ):
                             changeState = True
                             self.menuSelection = "LOCAL"
-                    elif mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h2 and mouse[1] < abs_h2 + h:
-                        if self.menuSelection != "ONLINE" and self.menuSelection != "ONLINE_DOWN":
+                    elif (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h2
+                        and mouse[1] < abs_h2 + h
+                    ):
+                        if (
+                            self.menuSelection != "ONLINE"
+                            and self.menuSelection != "ONLINE_DOWN"
+                        ):
                             changeState = True
                             self.menuSelection = "ONLINE"
                     else:
@@ -258,23 +324,43 @@ class ChessDisplay():
 
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button <= 3:
                     mouse = event.pos
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h and mouse[1] < abs_h + h:
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h
+                        and mouse[1] < abs_h + h
+                    ):
                         if self.menuSelection != "LOCAL_DOWN":
                             changeState = True
                             self.menuSelection = "LOCAL_DOWN"
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h2 and mouse[1] < abs_h2 + h:
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h2
+                        and mouse[1] < abs_h2 + h
+                    ):
                         if self.menuSelection != "ONLINE_DOWN":
                             changeState = True
                             self.menuSelection = "ONLINE_DOWN"
 
                 if event.type == pygame.MOUSEBUTTONUP and event.button <= 3:
                     mouse = event.pos
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h and mouse[1] < abs_h + h:
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h
+                        and mouse[1] < abs_h + h
+                    ):
                         if self.menuSelection == "LOCAL_DOWN":
                             self.menuSelection = "NONE"
                             self.setTwoPlayersOnOneBoardMode()
                             return
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h2 and mouse[1] < abs_h2 + h:
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h2
+                        and mouse[1] < abs_h2 + h
+                    ):
                         if self.menuSelection == "ONLINE_DOWN":
                             self.menuSelection = "NONE"
                             self.menuState = "ONLINE"
@@ -282,8 +368,6 @@ class ChessDisplay():
 
         if self.menuState == "ONLINE":
             for event in events:
-                if event.type == pygame.QUIT:
-                    done = True
                 for box in self.input_boxes:
                     box.handle_event(event)
 
@@ -300,7 +384,6 @@ class ChessDisplay():
             # Reference coordinates
             w = int(0.6375 * self.width)
             h = int(0.1875 * self.height)
-            h2 = int(0.2675 * self.height)
             abs_w = int(0.1875 * self.width)
             abs_h = int(0.21875 * self.height)
             abs_h2 = int(0.52 * self.height)
@@ -315,12 +398,28 @@ class ChessDisplay():
 
                 if event.type == pygame.MOUSEMOTION:
                     mouse = event.pos
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h and mouse[1] < abs_h + h:
-                        if self.menuSelection != "LOCAL" and self.menuSelection != "LOCAL_DOWN":
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h
+                        and mouse[1] < abs_h + h
+                    ):
+                        if (
+                            self.menuSelection != "LOCAL"
+                            and self.menuSelection != "LOCAL_DOWN"
+                        ):
                             changeState = True
                             self.menuSelection = "LOCAL"
-                    elif mouse[0] > abs_w3 and mouse[0] < abs_w3 + w3 and mouse[1] > abs_h3 and mouse[1] < abs_h3 + h3:
-                        if self.menuSelection != "CONNECT" and self.menuSelection != "CONNECT_DOWN":
+                    elif (
+                        mouse[0] > abs_w3
+                        and mouse[0] < abs_w3 + w3
+                        and mouse[1] > abs_h3
+                        and mouse[1] < abs_h3 + h3
+                    ):
+                        if (
+                            self.menuSelection != "CONNECT"
+                            and self.menuSelection != "CONNECT_DOWN"
+                        ):
                             changeState = True
                             self.menuSelection = "CONNECT"
                     else:
@@ -330,92 +429,187 @@ class ChessDisplay():
 
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button <= 3:
                     mouse = event.pos
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h and mouse[1] < abs_h + h:
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h
+                        and mouse[1] < abs_h + h
+                    ):
                         if self.menuSelection != "LOCAL_DOWN":
                             changeState = True
                             self.menuSelection = "LOCAL_DOWN"
-                    elif mouse[0] > abs_w3 and mouse[0] < abs_w3 + w3 and mouse[1] > abs_h3 and mouse[1] < abs_h3 + h3:
+                    elif (
+                        mouse[0] > abs_w3
+                        and mouse[0] < abs_w3 + w3
+                        and mouse[1] > abs_h3
+                        and mouse[1] < abs_h3 + h3
+                    ):
                         if self.menuSelection != "CONNECT_DOWN":
                             changeState = True
                             self.menuSelection = "CONNECT_DOWN"
 
                 if event.type == pygame.MOUSEBUTTONUP and event.button <= 3:
                     mouse = event.pos
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h and mouse[1] < abs_h + h:
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h
+                        and mouse[1] < abs_h + h
+                    ):
                         if self.menuSelection == "LOCAL_DOWN":
                             self.menuSelection = "NONE"
                             self.setTwoPlayersOnOneBoardMode()
                             return
-                    elif mouse[0] > int(0.458 * self.width) and mouse[0] < int(0.458 * self.width) + self.width // 16 + 6 and mouse[1] > int(0.61 * self.height) - 45 - 3 and mouse[1] < int(0.61 * self.height) + self.width // 16 + 6:
+                    elif (
+                        mouse[0] > int(0.458 * self.width)
+                        and mouse[0] < int(0.458 * self.width) + self.width // 16 + 6
+                        and mouse[1] > int(0.61 * self.height) - 45 - 3
+                        and mouse[1] < int(0.61 * self.height) + self.width // 16 + 6
+                    ):
                         if self.menuSelection != "SELECT_WHITE":
                             changeState = True
                             self.menuSelection = "SELECT_WHITE"
                             self.selected_color = "W"
-                    elif mouse[0] > int(0.55 * self.width) and mouse[0] < int(0.55 * self.width) + self.width // 16 + 6 and mouse[1] > int(0.61 * self.height) - 45 - 3 and mouse[1] < int(0.61 * self.height) - 45 - 3 + self.width // 16 + 6:
+                    elif (
+                        mouse[0] > int(0.55 * self.width)
+                        and mouse[0] < int(0.55 * self.width) + self.width // 16 + 6
+                        and mouse[1] > int(0.61 * self.height) - 45 - 3
+                        and mouse[1]
+                        < int(0.61 * self.height) - 45 - 3 + self.width // 16 + 6
+                    ):
                         if self.menuSelection != "SELECT_BLACK":
                             changeState = True
                             self.menuSelection = "SELECT_BLACK"
                             self.selected_color = "B"
-                    elif mouse[0] > abs_w3 and mouse[0] < abs_w3 + w3 and mouse[1] > abs_h3 and mouse[1] < abs_h3 + h3:
+                    elif (
+                        mouse[0] > abs_w3
+                        and mouse[0] < abs_w3 + w3
+                        and mouse[1] > abs_h3
+                        and mouse[1] < abs_h3 + h3
+                    ):
                         if self.menuSelection == "CONNECT_DOWN":
                             check_IP_port = self.check_address_format(self.address.text)
                             if not check_IP_port:
                                 changeState = True
                                 self.menuSelection = "CONNECT"
                                 self.addMessage(
-                                    "Please enter a valid [IP]:[port] (example :    \"127.0.0.1:8006\")")
+                                    "Please enter a valid [IP]:[port] "
+                                    '(example :    "127.0.0.1:8006")'
+                                )
                             elif len(self.name.text) == 0:
                                 changeState = True
                                 self.menuSelection = "CONNECT"
                                 self.addMessage("Please enter a player name")
                             else:
                                 c = 0 if self.selected_color == "W" else 1
-                                self.setOnePlayerOnNetworkMode(self.name.text, self.address.text, c)
+                                self.setOnePlayerOnNetworkMode(
+                                    self.name.text, self.address.text, c
+                                )
                                 return
 
         if changeState:
             fontTitleS = pygame.font.Font(TITLE_FONT, 40)
             fontTitle = pygame.font.Font(TITLE_FONT, 60)
             if self.menuSelection == "LOCAL":
-                pygame.draw.rect(self.screen, pygame.Color(170, 170, 170), [abs_w, abs_h, w, h])
+                pygame.draw.rect(
+                    self.screen, pygame.Color(170, 170, 170), [abs_w, abs_h, w, h]
+                )
                 local = fontTitle.render("Local game", True, (0, 0, 0))
-                local_rect = local.get_rect(center=(self.width // 2, (0.3125 * self.height)))
+                local_rect = local.get_rect(
+                    center=(self.width // 2, (0.3125 * self.height))
+                )
                 self.screen.blit(local, local_rect)
             elif self.menuSelection == "LOCAL_DOWN":
-                pygame.draw.rect(self.screen, pygame.Color(140, 140, 140), [abs_w, abs_h, w, h])
+                pygame.draw.rect(
+                    self.screen, pygame.Color(140, 140, 140), [abs_w, abs_h, w, h]
+                )
                 local = fontTitle.render("Local game", True, (0, 0, 0))
-                local_rect = local.get_rect(center=(self.width // 2, (0.3125 * self.height)))
+                local_rect = local.get_rect(
+                    center=(self.width // 2, (0.3125 * self.height))
+                )
                 self.screen.blit(local, local_rect)
             elif self.menuSelection == "ONLINE":
-                pygame.draw.rect(self.screen, pygame.Color(170, 170, 170), [abs_w, abs_h2, w, h])
+                pygame.draw.rect(
+                    self.screen, pygame.Color(170, 170, 170), [abs_w, abs_h2, w, h]
+                )
                 online = fontTitle.render("Online game", True, (0, 0, 0))
-                online_rect = online.get_rect(center=(self.width // 2, (0.6875 * self.height)))
+                online_rect = online.get_rect(
+                    center=(self.width // 2, (0.6875 * self.height))
+                )
                 self.screen.blit(online, online_rect)
             elif self.menuSelection == "ONLINE_DOWN":
-                pygame.draw.rect(self.screen, pygame.Color(140, 140, 140), [abs_w, abs_h2, w, h])
+                pygame.draw.rect(
+                    self.screen, pygame.Color(140, 140, 140), [abs_w, abs_h2, w, h]
+                )
                 online = fontTitle.render("Online game", True, (0, 0, 0))
-                online_rect = online.get_rect(center=(self.width // 2, (0.6875 * self.height)))
+                online_rect = online.get_rect(
+                    center=(self.width // 2, (0.6875 * self.height))
+                )
                 self.screen.blit(online, online_rect)
             elif self.menuSelection == "CONNECT":
-                pygame.draw.rect(self.screen, pygame.Color(170, 170, 170), [abs_w3, abs_h3, w3, h3])
+                pygame.draw.rect(
+                    self.screen, pygame.Color(170, 170, 170), [abs_w3, abs_h3, w3, h3]
+                )
                 connect = fontTitleS.render("Connect", True, (0, 0, 0))
-                connect_rect = connect.get_rect(center=(abs_w3 + 0.5 * w3, abs_h3 + 0.5 * h3))
+                connect_rect = connect.get_rect(
+                    center=(abs_w3 + 0.5 * w3, abs_h3 + 0.5 * h3)
+                )
                 self.screen.blit(connect, connect_rect)
             elif self.menuSelection == "CONNECT_DOWN":
-                pygame.draw.rect(self.screen, pygame.Color(140, 140, 140), [abs_w3, abs_h3, w3, h3])
+                pygame.draw.rect(
+                    self.screen, pygame.Color(140, 140, 140), [abs_w3, abs_h3, w3, h3]
+                )
                 connect = fontTitleS.render("Connect", True, (0, 0, 0))
-                connect_rect = connect.get_rect(center=(abs_w3 + 0.5 * w3, abs_h3 + 0.5 * h3))
+                connect_rect = connect.get_rect(
+                    center=(abs_w3 + 0.5 * w3, abs_h3 + 0.5 * h3)
+                )
                 self.screen.blit(connect, connect_rect)
             elif self.menuSelection == "SELECT_BLACK":
-                pygame.draw.rect(self.screen, pygame.Color(200, 200, 200), [int(
-                    0.458 * self.width), int(0.61 * self.height) - 45 - 3, self.width // 16 + 6, self.width // 16 + 6], 2)
-                pygame.draw.rect(self.screen, pygame.Color(0, 0, 0), [int(
-                    0.55 * self.width), int(0.61 * self.height) - 45 - 3, self.width // 16 + 6, self.width // 16 + 6], 2)
+                pygame.draw.rect(
+                    self.screen,
+                    pygame.Color(200, 200, 200),
+                    [
+                        int(0.458 * self.width),
+                        int(0.61 * self.height) - 45 - 3,
+                        self.width // 16 + 6,
+                        self.width // 16 + 6,
+                    ],
+                    2,
+                )
+                pygame.draw.rect(
+                    self.screen,
+                    pygame.Color(0, 0, 0),
+                    [
+                        int(0.55 * self.width),
+                        int(0.61 * self.height) - 45 - 3,
+                        self.width // 16 + 6,
+                        self.width // 16 + 6,
+                    ],
+                    2,
+                )
             elif self.menuSelection == "SELECT_WHITE":
-                pygame.draw.rect(self.screen, pygame.Color(0, 0, 0), [int(
-                    0.458 * self.width), int(0.61 * self.height) - 45 - 3, self.width // 16 + 6, self.width // 16 + 6], 2)
-                pygame.draw.rect(self.screen, pygame.Color(200, 200, 200), [int(
-                    0.55 * self.width), int(0.61 * self.height) - 45 - 3, self.width // 16 + 6, self.width // 16 + 6], 2)
+                pygame.draw.rect(
+                    self.screen,
+                    pygame.Color(0, 0, 0),
+                    [
+                        int(0.458 * self.width),
+                        int(0.61 * self.height) - 45 - 3,
+                        self.width // 16 + 6,
+                        self.width // 16 + 6,
+                    ],
+                    2,
+                )
+                pygame.draw.rect(
+                    self.screen,
+                    pygame.Color(200, 200, 200),
+                    [
+                        int(0.55 * self.width),
+                        int(0.61 * self.height) - 45 - 3,
+                        self.width // 16 + 6,
+                        self.width // 16 + 6,
+                    ],
+                    2,
+                )
 
             else:
                 self.drawMenu()
@@ -435,13 +629,21 @@ class ChessDisplay():
                 # A left click triggers the move, other clicks cancel it
                 if event.button == 1:
                     mouse = pygame.mouse.get_pos()
-                    box = ((8 * mouse[0]) // self.width), ((8 * mouse[1]) // self.height)
+                    box = (
+                        ((8 * mouse[0]) // self.width),
+                        ((8 * mouse[1]) // self.height),
+                    )
                     if box[0] < 8 and box[1] < 8:
                         if self.selectedBox is None:  # If no box is selected
                             self.selectedBox = box
-                        else:  # if another box has already been selected, we try a move from the old box to the new box
-                            x1, y1, x2, y2 = self.selectedBox[0], self.flipY(
-                                self.selectedBox[1]), box[0], self.flipY(box[1])
+                        else:
+                            # Another box was already selected: try a move from it
+                            x1, y1, x2, y2 = (
+                                self.selectedBox[0],
+                                self.flipY(self.selectedBox[1]),
+                                box[0],
+                                self.flipY(box[1]),
+                            )
                             self.gameEngine.move(x1, y1, x2, y2)
                             self.selectedBox = None
                     else:
@@ -466,23 +668,43 @@ class ChessDisplay():
         for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse = pygame.mouse.get_pos()
-                if event.button == 4 and mouse[0] > self.width and mouse[1] < self.height // 4:
+                if (
+                    event.button == 4
+                    and mouse[0] > self.width
+                    and mouse[1] < self.height // 4
+                ):
                     self.current_first_message = max(0, self.current_first_message - 1)
-                if event.button == 5 and mouse[0] > self.width and mouse[1] < self.height // 4:
+                if (
+                    event.button == 5
+                    and mouse[0] > self.width
+                    and mouse[1] < self.height // 4
+                ):
                     self.current_first_message = min(
-                        max(0, len(self.message_history) - self.maximum_messages), self.current_first_message + 1)
+                        max(0, len(self.message_history) - self.maximum_messages),
+                        self.current_first_message + 1,
+                    )
                 # Auto_move and game finish click
                 if self.state == "PLAYING":
                     w = int(0.42 * self.pane_width)
                     h = int(0.12 * self.height)
                     abs_w = int(self.width + 15)
                     abs_h = int(0.195 * self.height)
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h and mouse[1] < abs_h + h:
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h
+                        and mouse[1] < abs_h + h
+                    ):
                         self.automoveSelection = "DOWN"
 
                     abs_w = int(self.width + 0.5 * self.pane_width + 10)
                     abs_h = int(0.195 * self.height)
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h and mouse[1] < abs_h + h:
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h
+                        and mouse[1] < abs_h + h
+                    ):
                         self.finishSelection = "DOWN"
 
             if self.state == "PLAYING":
@@ -495,8 +717,16 @@ class ChessDisplay():
 
                     abs_w = int(self.width + 15)
                     abs_h = int(0.195 * self.height)
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h and mouse[1] < abs_h + h:
-                        if self.automoveSelection != "HOVER" and self.automoveSelection != "DOWN":
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h
+                        and mouse[1] < abs_h + h
+                    ):
+                        if (
+                            self.automoveSelection != "HOVER"
+                            and self.automoveSelection != "DOWN"
+                        ):
                             self.automoveSelection = "HOVER"
                     else:
                         if self.automoveSelection != "NONE":
@@ -504,8 +734,16 @@ class ChessDisplay():
 
                     abs_w = int(self.width + 0.5 * self.pane_width + 10)
                     abs_h = int(0.195 * self.height)
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h and mouse[1] < abs_h + h:
-                        if self.finishSelection != "HOVER" and self.finishSelection != "DOWN":
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h
+                        and mouse[1] < abs_h + h
+                    ):
+                        if (
+                            self.finishSelection != "HOVER"
+                            and self.finishSelection != "DOWN"
+                        ):
                             self.finishSelection = "HOVER"
                     else:
                         if self.finishSelection != "NONE":
@@ -517,20 +755,30 @@ class ChessDisplay():
 
                     abs_w = int(self.width + 15)
                     abs_h = int(0.195 * self.height)
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h and mouse[1] < abs_h + h:
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h
+                        and mouse[1] < abs_h + h
+                    ):
                         if self.automoveSelection == "DOWN":
                             if self.mode == "LOCAL":
                                 x1, y1, x2, y2 = self.gameEngine.autoMove()
                                 self.gameEngine.move(x1, y1, x2, y2)
                                 self.gameEngine.makeDisplayDrawBoard()
-                            else: # Online mode
+                            else:  # Online mode
                                 self.gameEngine.autoMove()
                                 # self.addMessage("Auto-move is not available online")
                             self.automoveSelection = "HOVER"
 
                     abs_w = int(self.width + 0.5 * self.pane_width + 10)
                     abs_h = int(0.195 * self.height)
-                    if mouse[0] > abs_w and mouse[0] < abs_w + w and mouse[1] > abs_h and mouse[1] < abs_h + h:
+                    if (
+                        mouse[0] > abs_w
+                        and mouse[0] < abs_w + w
+                        and mouse[1] > abs_h
+                        and mouse[1] < abs_h + h
+                    ):
                         if self.finishSelection == "DOWN":
                             self.gameEngine.checkEnd()
                             self.finishSelection = "HOVER"
@@ -554,18 +802,32 @@ class ChessDisplay():
             abs_w = int(0.1875 * self.width)
             abs_h = int(0.21875 * self.height)
             abs_h2 = int(0.59375 * self.height)
-            pygame.draw.rect(self.screen, pygame.Color(0, 0, 0), [
-                             abs_w - 5, abs_h - 5, w + 10, h + 10])
-            pygame.draw.rect(self.screen, pygame.Color(200, 200, 200), [abs_w, abs_h, w, h])
+            pygame.draw.rect(
+                self.screen,
+                pygame.Color(0, 0, 0),
+                [abs_w - 5, abs_h - 5, w + 10, h + 10],
+            )
+            pygame.draw.rect(
+                self.screen, pygame.Color(200, 200, 200), [abs_w, abs_h, w, h]
+            )
             local = fontTitle.render("Local game", True, (0, 0, 0))
-            local_rect = local.get_rect(center=(self.width // 2, (0.3125 * self.height)))
+            local_rect = local.get_rect(
+                center=(self.width // 2, (0.3125 * self.height))
+            )
             self.screen.blit(local, local_rect)
 
-            pygame.draw.rect(self.screen, pygame.Color(0, 0, 0), [
-                             abs_w - 5, abs_h2 - 5, w + 10, h + 10])
-            pygame.draw.rect(self.screen, pygame.Color(200, 200, 200), [abs_w, abs_h2, w, h])
+            pygame.draw.rect(
+                self.screen,
+                pygame.Color(0, 0, 0),
+                [abs_w - 5, abs_h2 - 5, w + 10, h + 10],
+            )
+            pygame.draw.rect(
+                self.screen, pygame.Color(200, 200, 200), [abs_w, abs_h2, w, h]
+            )
             online = fontTitle.render("Online game", True, (0, 0, 0))
-            online_rect = online.get_rect(center=(self.width // 2, (0.6875 * self.height)))
+            online_rect = online.get_rect(
+                center=(self.width // 2, (0.6875 * self.height))
+            )
             self.screen.blit(online, online_rect)
 
         if self.menuState == "ONLINE":
@@ -575,47 +837,100 @@ class ChessDisplay():
             abs_w = int(0.1875 * self.width)
             abs_h = int(0.21875 * self.height)
             abs_h2 = int(0.52 * self.height)
-            pygame.draw.rect(self.screen, pygame.Color(0, 0, 0), [
-                             abs_w - 5, abs_h - 5, w + 10, h + 10])
-            pygame.draw.rect(self.screen, pygame.Color(200, 200, 200), [abs_w, abs_h, w, h])
+            pygame.draw.rect(
+                self.screen,
+                pygame.Color(0, 0, 0),
+                [abs_w - 5, abs_h - 5, w + 10, h + 10],
+            )
+            pygame.draw.rect(
+                self.screen, pygame.Color(200, 200, 200), [abs_w, abs_h, w, h]
+            )
             local = fontTitle.render("Local game", True, (0, 0, 0))
-            local_rect = local.get_rect(center=(self.width // 2, (0.3125 * self.height)))
+            local_rect = local.get_rect(
+                center=(self.width // 2, (0.3125 * self.height))
+            )
             self.screen.blit(local, local_rect)
 
-            pygame.draw.rect(self.screen, pygame.Color(0, 0, 0), [
-                             abs_w - 5, abs_h2 - 5, w + 10, h2 + 10])
-            pygame.draw.rect(self.screen, pygame.Color(200, 200, 200), [abs_w, abs_h2, w, h2])
+            pygame.draw.rect(
+                self.screen,
+                pygame.Color(0, 0, 0),
+                [abs_w - 5, abs_h2 - 5, w + 10, h2 + 10],
+            )
+            pygame.draw.rect(
+                self.screen, pygame.Color(200, 200, 200), [abs_w, abs_h2, w, h2]
+            )
             color = fontText.render("Color", True, (0, 0, 0))
-            self.screen.blit(color, (int(0.2 * self.width), int(0.61 * self.height) - 40))
+            self.screen.blit(
+                color, (int(0.2 * self.width), int(0.61 * self.height) - 40)
+            )
             player = fontText.render("Player name", True, (0, 0, 0))
-            self.screen.blit(player, (int(0.2 * self.width), int(0.697 * self.height) - 40))
+            self.screen.blit(
+                player, (int(0.2 * self.width), int(0.697 * self.height) - 40)
+            )
             address = fontText.render("[Server IP]:[port]", True, (0, 0, 0))
-            self.screen.blit(address, (int(0.2 * self.width), int(0.78 * self.height) - 40))
+            self.screen.blit(
+                address, (int(0.2 * self.width), int(0.78 * self.height) - 40)
+            )
             for box in self.input_boxes:
                 box.draw(self.screen)
 
-            self.draw_piece(0, ["E"],
-                int(0.458 * self.width) + 3, int(0.61 * self.height) - 45,
-                self.width // 16, extended=False)
-            self.draw_piece(1, ["E"],
-                int(0.55 * self.width) + 3, int(0.61 * self.height) - 45,
-                self.width // 16, extended=False)
+            self.draw_piece(
+                0,
+                ["E"],
+                int(0.458 * self.width) + 3,
+                int(0.61 * self.height) - 45,
+                self.width // 16,
+                extended=False,
+            )
+            self.draw_piece(
+                1,
+                ["E"],
+                int(0.55 * self.width) + 3,
+                int(0.61 * self.height) - 45,
+                self.width // 16,
+                extended=False,
+            )
             if self.selected_color == "W":
-                pygame.draw.rect(self.screen, pygame.Color(0, 0, 0), [int(
-                    0.458 * self.width), int(0.61 * self.height) - 45 - 3, self.width // 16 + 6, self.width // 16 + 6], 2)
+                pygame.draw.rect(
+                    self.screen,
+                    pygame.Color(0, 0, 0),
+                    [
+                        int(0.458 * self.width),
+                        int(0.61 * self.height) - 45 - 3,
+                        self.width // 16 + 6,
+                        self.width // 16 + 6,
+                    ],
+                    2,
+                )
             else:
-                pygame.draw.rect(self.screen, pygame.Color(0, 0, 0), [int(
-                    0.55 * self.width), int(0.61 * self.height) - 45 - 3, self.width // 16 + 6, self.width // 16 + 6], 2)
+                pygame.draw.rect(
+                    self.screen,
+                    pygame.Color(0, 0, 0),
+                    [
+                        int(0.55 * self.width),
+                        int(0.61 * self.height) - 45 - 3,
+                        self.width // 16 + 6,
+                        self.width // 16 + 6,
+                    ],
+                    2,
+                )
 
             w3 = int(0.4 * self.width)
             h3 = int(0.12 * self.height)
             abs_w3 = int(0.3 * self.width)
             abs_h3 = int(0.82 * self.height)
-            pygame.draw.rect(self.screen, pygame.Color(0, 0, 0), [
-                             abs_w3 - 5, abs_h3 - 5, w3 + 10, h3 + 10])
-            pygame.draw.rect(self.screen, pygame.Color(200, 200, 200), [abs_w3, abs_h3, w3, h3])
+            pygame.draw.rect(
+                self.screen,
+                pygame.Color(0, 0, 0),
+                [abs_w3 - 5, abs_h3 - 5, w3 + 10, h3 + 10],
+            )
+            pygame.draw.rect(
+                self.screen, pygame.Color(200, 200, 200), [abs_w3, abs_h3, w3, h3]
+            )
             connect = fontTitleS.render("Connect", True, (0, 0, 0))
-            connect_rect = connect.get_rect(center=(abs_w3 + 0.5 * w3, abs_h3 + 0.5 * h3))
+            connect_rect = connect.get_rect(
+                center=(abs_w3 + 0.5 * w3, abs_h3 + 0.5 * h3)
+            )
             self.screen.blit(connect, connect_rect)
 
             pygame.display.flip()
@@ -624,17 +939,30 @@ class ChessDisplay():
         pygame.display.flip()
 
     def drawPane(self):
-        pygame.draw.rect(self.screen, pygame.Color(200, 200, 200), [
-            self.width, 0, self.total_width, self.total_height
-        ])
+        pygame.draw.rect(
+            self.screen,
+            pygame.Color(200, 200, 200),
+            [self.width, 0, self.total_width, self.total_height],
+        )
         # Messages
-        pygame.draw.rect(self.screen, pygame.Color(0, 0, 0), [self.width, 0, 5, self.height])
-        pygame.draw.rect(self.screen, pygame.Color(230, 230, 230), [
-                         self.width + 15, 10, self.pane_width - 30, self.height // 6])
-        pygame.draw.rect(self.screen, pygame.Color(0, 0, 0), [
-                         self.width + 15, 10, self.pane_width - 30, self.height // 6], 2)
-        selected_messages = self.message_history[self.current_first_message:
-                                                 self.current_first_message + self.maximum_messages]
+        pygame.draw.rect(
+            self.screen, pygame.Color(0, 0, 0), [self.width, 0, 5, self.height]
+        )
+        pygame.draw.rect(
+            self.screen,
+            pygame.Color(230, 230, 230),
+            [self.width + 15, 10, self.pane_width - 30, self.height // 6],
+        )
+        pygame.draw.rect(
+            self.screen,
+            pygame.Color(0, 0, 0),
+            [self.width + 15, 10, self.pane_width - 30, self.height // 6],
+            2,
+        )
+        selected_messages = self.message_history[
+            self.current_first_message : self.current_first_message
+            + self.maximum_messages
+        ]
         for i, message in enumerate(selected_messages):
             local = self.message_font.render(message, True, (0, 0, 0))
             self.screen.blit(local, (self.width + 20, 15 + i * 15))
@@ -652,9 +980,9 @@ class ChessDisplay():
                 color = pygame.Color(170, 170, 170)
             elif self.automoveSelection == "DOWN":
                 color = pygame.Color(140, 140, 140)
-            pygame.draw.rect(self.screen, color, [abs_w+2, abs_h+2, w-4, h-4])
+            pygame.draw.rect(self.screen, color, [abs_w + 2, abs_h + 2, w - 4, h - 4])
             auto_move = self.pane_buttons_font.render("Auto-move", True, (0, 0, 0))
-            self.screen.blit(auto_move, (abs_w + 0.13*w, abs_h + 0.35*h))
+            self.screen.blit(auto_move, (abs_w + 0.13 * w, abs_h + 0.35 * h))
 
             w = int(0.42 * self.pane_width)
             h = int(0.12 * self.height)
@@ -667,11 +995,11 @@ class ChessDisplay():
                 color = pygame.Color(170, 170, 170)
             elif self.finishSelection == "DOWN":
                 color = pygame.Color(140, 140, 140)
-            pygame.draw.rect(self.screen, color, [abs_w+2, abs_h+2, w-4, h-4])
+            pygame.draw.rect(self.screen, color, [abs_w + 2, abs_h + 2, w - 4, h - 4])
             has_game = self.pane_buttons_font.render("Has game", True, (0, 0, 0))
             ended = self.pane_buttons_font.render("ended ?", True, (0, 0, 0))
-            self.screen.blit(has_game, (abs_w + 0.15*w, abs_h + 0.15*h))
-            self.screen.blit(ended, (abs_w + 0.25*w, abs_h + 0.55*h))
+            self.screen.blit(has_game, (abs_w + 0.15 * w, abs_h + 0.15 * h))
+            self.screen.blit(ended, (abs_w + 0.25 * w, abs_h + 0.55 * h))
 
         # Dead pieces
         text_white = self.dead_font.render("White losses", True, (0, 0, 0))
@@ -680,34 +1008,59 @@ class ChessDisplay():
         self.screen.blit(text_black, (self.width + 20, 2.75 * self.height // 4 - 30))
 
         for i, p in enumerate(self.white_dead):
-            self.draw_piece(color=0, natures =p["natures"],
-                            x=self.width + 20 + i % 5 * (self.width//12),
-                            y=1.5*self.height // 4 + i // 5 * (self.width//12),
-                            size=self.width//12)
+            self.draw_piece(
+                color=0,
+                natures=p["natures"],
+                x=self.width + 20 + i % 5 * (self.width // 12),
+                y=1.5 * self.height // 4 + i // 5 * (self.width // 12),
+                size=self.width // 12,
+            )
         for i, p in enumerate(self.black_dead):
-            self.draw_piece(color=1, natures =p["natures"],
-                            x=self.width + 20 + i % 5 * (self.width//12),
-                            y=2.75*self.height // 4 + i // 5 * (self.width//12),
-                            size=self.width//12)
+            self.draw_piece(
+                color=1,
+                natures=p["natures"],
+                x=self.width + 20 + i % 5 * (self.width // 12),
+                y=2.75 * self.height // 4 + i // 5 * (self.width // 12),
+                size=self.width // 12,
+            )
 
         pygame.display.flip()
 
     def load_images(self):
         """Retrieve images from memory."""
-        pieces_names = ["bB", "bK", "bN", "bP", "bQ", "bR",
-                        "bE", "wB", "wK", "wN", "wP", "wQ", "wR", "wE"]
+        pieces_names = [
+            "bB",
+            "bK",
+            "bN",
+            "bP",
+            "bQ",
+            "bR",
+            "bE",
+            "wB",
+            "wK",
+            "wN",
+            "wP",
+            "wQ",
+            "wR",
+            "wE",
+        ]
         self.pieces_pictures = {}
         for name in pieces_names:
-            self.pieces_pictures[name] = pygame.transform.smoothscale(pygame.image.load(
-                os.path.join(ASSETS_DIR, "img", name + ".png")), (self.width // 8, self.height // 8))
-        self.board = pygame.transform.scale(pygame.image.load(
-            os.path.join(ASSETS_DIR, "img", "board.png")), (self.width, self.height))  # smaller icons for multiple display
+            self.pieces_pictures[name] = pygame.transform.smoothscale(
+                pygame.image.load(os.path.join(ASSETS_DIR, "img", name + ".png")),
+                (self.width // 8, self.height // 8),
+            )
+        self.board = pygame.transform.scale(
+            pygame.image.load(os.path.join(ASSETS_DIR, "img", "board.png")),
+            (self.width, self.height),
+        )  # smaller icons for multiple display
         self.boardFlip = pygame.transform.flip(self.board, False, True)
 
     def flipDisplay(self, newState):
         """
         Set the display orientation
-        :param newState: Is True if and only if the display has to be upside down (Black in the lower part)
+        :param newState: True if the display has to be upside down
+            (Black in the lower part)
         """
         self.flip = newState
         self.gameEngine.makeDisplayDrawBoard()
@@ -721,7 +1074,7 @@ class ChessDisplay():
 
     def addMessage(self, message):
         """
-        Split the incoming text message according to the screen size and add it to the message history
+        Split the incoming message to the screen size and add it to the history
         :param message: A string message
         """
         length = 0
@@ -737,7 +1090,9 @@ class ChessDisplay():
             self.message_history.append(message[i0:])
 
         # Scroll to the end of the messages
-        self.current_first_message = max(0, len(self.message_history) - self.maximum_messages)
+        self.current_first_message = max(
+            0, len(self.message_history) - self.maximum_messages
+        )
         self.drawPane()
 
     def check_address_format(self, s):
@@ -776,27 +1131,29 @@ class ChessDisplay():
                         xp = x + ((2 * i) % 3) * self.width // 24
                         yp = y + ((2 * i) // 3) * self.height // 24
                         picture = pygame.transform.smoothscale(
-                                    self.pieces_pictures[color + natures[i]],
-                                    (size//3, size//3))
+                            self.pieces_pictures[color + natures[i]],
+                            (size // 3, size // 3),
+                        )
                         self.screen.blit(picture, (xp, yp))
                 else:
                     for i in range(len(natures)):
                         xp = x + (i % 2) * self.width // 16
                         yp = y + (i // 2) * self.height // 16
                         picture = pygame.transform.smoothscale(
-                                    self.pieces_pictures[color + natures[i]],
-                                    (size//2, size//2))
+                            self.pieces_pictures[color + natures[i]],
+                            (size // 2, size // 2),
+                        )
                         self.screen.blit(picture, (xp, yp))
         else:
             if color == 0:
                 picture_name = "w"
             else:
                 picture_name = "b"
-            if (len(natures) > 1):
+            if len(natures) > 1:
                 picture_name += "E"
             else:
                 picture_name += natures[0]
             picture = pygame.transform.smoothscale(
-                        self.pieces_pictures[picture_name],
-                        (size, size))
+                self.pieces_pictures[picture_name], (size, size)
+            )
             self.screen.blit(picture, (x, y))

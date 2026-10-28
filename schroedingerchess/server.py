@@ -1,12 +1,11 @@
-from twisted.internet.protocol import Protocol, Factory
-from twisted.internet import reactor
-from twisted.internet.endpoints import TCP4ServerEndpoint
-from twisted.internet.defer import inlineCallbacks, Deferred
-
-from .chess import ChessBoard, LightBoard, IllegalMove
-
 import json
 import time
+
+from twisted.internet import reactor
+from twisted.internet.endpoints import TCP4ServerEndpoint
+from twisted.internet.protocol import Factory, Protocol
+
+from .chess import ChessBoard, IllegalMove, LightBoard
 
 
 class ChessServerProtocol(Protocol):
@@ -27,7 +26,7 @@ class ChessServerProtocol(Protocol):
         self.state = "GREETING"
 
         self.player_id = self.factory.addWaitingPlayer(self)
-        print("Player {} connected".format(self.player_id))
+        print(f"Player {self.player_id} connected")
 
         msg = {"type": "greetings"}
         msg["player_id"] = self.player_id
@@ -51,7 +50,9 @@ class ChessServerProtocol(Protocol):
         if self.game is not None:
             self.game.sendMessageToAll(msg)
         else:
-            raise RuntimeError("trying to send a message when the game is not created / over")
+            raise RuntimeError(
+                "trying to send a message when the game is not created / over"
+            )
 
     def sendMessageToOther(self, msg):
         """
@@ -61,7 +62,9 @@ class ChessServerProtocol(Protocol):
         if self.game is not None:
             self.game.sendMessageTo(msg, 0 if self.color else 1)
         else:
-            raise RuntimeError("trying to send a message when the game is not created / over")
+            raise RuntimeError(
+                "trying to send a message when the game is not created / over"
+            )
 
     def dataReceived(self, data):
         """
@@ -70,7 +73,6 @@ class ChessServerProtocol(Protocol):
         """
         # msg = json.loads(data.decode())
         messages = self.split_messages(data)
-        update = False
 
         for msg_json in messages:
             msg = json.loads(msg_json)
@@ -99,7 +101,8 @@ class ChessServerProtocol(Protocol):
 
     def refuseMessage(self, msg):
         """
-        Handles the reception of messages when waiting for second player. All instructions are illegal.
+        Handle messages received while waiting for a second player.
+        All instructions are illegal.
         :param msg: A dictionary representing a message.
         """
         self.sendMessage({"type": "illegal-request", "request": msg})
@@ -133,14 +136,16 @@ class ChessServerProtocol(Protocol):
             self.factory.removePlayerFromWaitingList(self.player_id)
         else:
             # Disconnect other player and remove the game
-            self.sendMessageToOther({"type": "chat", "content": "Other player disconnected"})
+            self.sendMessageToOther(
+                {"type": "chat", "content": "Other player disconnected"}
+            )
             time.sleep(0.5)
             self.game.disconnectPlayers()
             self.factory.removeGame(self.game_id)
-        print("Player {} disconnected".format(self.player_id))
+        print(f"Player {self.player_id} disconnected")
 
     def disconnect(self):
-        """ Disconnect current player / protocol """
+        """Disconnect current player / protocol"""
         self.transport.loseConnection()
 
     def split_messages(self, data):
@@ -152,7 +157,7 @@ class ChessServerProtocol(Protocol):
             m = sp
             if i > 0:
                 m = "{" + m
-            if i < len(split)-1:
+            if i < len(split) - 1:
                 m = m + "}"
             messages.append(m)
         return messages
@@ -200,14 +205,19 @@ class ChessServer(Factory):
         self.tryToMatchPlayers()
 
     def tryToMatchPlayers(self):
-        while len(self.waitingBlackPlayers[0]) >= 1 and len(self.waitingWhitePlayers[0]) >= 1:
+        while (
+            len(self.waitingBlackPlayers[0]) >= 1
+            and len(self.waitingWhitePlayers[0]) >= 1
+        ):
             whites_id = self.waitingWhitePlayers[0].pop(0)
             blacks_id = self.waitingBlackPlayers[0].pop(0)
             whites_client = self.waitingWhitePlayers[1].pop(whites_id)
             blacks_client = self.waitingBlackPlayers[1].pop(blacks_id)
             game = Game(whites_client, blacks_client, self.gameIndex)
             self.games[self.gameIndex] = game
-            print("Matched player {} and {} into game {}".format(whites_id, blacks_id, self.gameIndex))
+            print(
+                f"Matched player {whites_id} and {blacks_id} into game {self.gameIndex}"
+            )
             self.gameIndex += 1
 
     def removePlayerFromWaitingList(self, player_id):
@@ -223,7 +233,7 @@ class ChessServer(Factory):
     def removeGame(self, game_id):
         try:
             del self.games[game_id]
-            print("Terminated game {}".format(game_id))
+            print(f"Terminated game {game_id}")
         except KeyError:
             # The other player already deleted the game
             pass
@@ -255,7 +265,9 @@ class Game:
     def move(self, x1, y1, x2, y2, color):
         piece = self.chessBoard.grid[x1][y1]
         if piece is not None and piece.color is not color:
-            raise IllegalMove("Trying to move a place that does not belong to the player.")
+            raise IllegalMove(
+                "Trying to move a place that does not belong to the player."
+            )
         self.chessBoard.move(x1, y1, x2, y2, disp=False)
         self.lightBoard.move(x1, y1, x2, y2)
         self.validMovesCounter += 1
@@ -281,7 +293,7 @@ class Game:
         self.sendMessageToAll(msg)
 
     def updateLightBoard(self):
-        """ Schedules an update board task. """
+        """Schedules an update board task."""
         reactor.callLater(0.5, self.updateLightBoardTask)
 
     def sendMessageToAll(self, msg):

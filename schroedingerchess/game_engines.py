@@ -1,26 +1,21 @@
-from twisted.internet.task import LoopingCall
-from twisted.internet.defer import inlineCallbacks, Deferred
 from twisted.internet import reactor
+from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
+from twisted.internet.task import LoopingCall
 from twisted.python import log
 
-from .display import ChessDisplay
-
 from .chess import ChessBoard, IllegalMove, LightBoard
-
 from .client import ChessClientProtocol
-
-from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
-
-import time
+from .display import ChessDisplay
 
 FRAME_PER_SECOND = 10
 CONNECTION_WAITING_TIME = 10  # seconds
 
 
-class GameEngine():
+class GameEngine:
     # TODO fix JSON encore / decode error
     def start(self):
-        """ Starts the game engine. Create the window and initiate the reaction loop."""
+        """Starts the game engine. Create the window and initiate the reaction loop."""
         self.lightBoard = LightBoard()
         self.display = ChessDisplay(self)
         self.loopingCall = LoopingCall(self.display.update)
@@ -28,60 +23,60 @@ class GameEngine():
         reactor.run()
 
     def startFromEngine(self, engine):
-        """ Starts the game engine. Create the window and initiate the reaction loop."""
+        """Starts the game engine. Create the window and initiate the reaction loop."""
         self.lightBoard = LightBoard()
         self.display = engine.display
         self.loopingCall = engine.loopingCall
         self.resume()
 
     def stop(self):
-        """ Stops the game engine."""
+        """Stops the game engine."""
         # self.loopingCall.stop() # causing an unhandled error and don't seem necessary
         # self.display = None
         reactor.stop()
 
     def suspend(self):
-        """ Suspends the reaction loop of the window."""
+        """Suspends the reaction loop of the window."""
         self.loopingCall.stop()
 
     def resume(self):
-        """ Resumes the reaction loop of the window."""
+        """Resumes the reaction loop of the window."""
         self.loopingCall.start(1 / FRAME_PER_SECOND).addErrback(log.err)
 
     def setTwoPlayersOnOneBoardMode(self):
-        """ Sets the engine on the two-players-on-one-board mode."""
+        """Sets the engine on the two-players-on-one-board mode."""
         self.suspend()
         self.display.gameEngine = TwoPlayersOnOneBoard(self)
         self.display.gameEngine.resume()
 
     def setOnePlayerOnNetworkMode(self, name, address, color):
-        """ Sets the engine on the one-player-on-network mode."""
+        """Sets the engine on the one-player-on-network mode."""
         self.suspend()
         self.display.gameEngine = OnePlayerOnNetwork(self, name, address, color)
         self.display.gameEngine.resume()
 
     def moveTask(self, x1, y1, x2, y2):
-        """ Task to perform when the display detects a move."""
+        """Task to perform when the display detects a move."""
         raise NotImplementedError
 
     def move(self, x1, y1, x2, y2):
-        """ Schedules a move task. """
+        """Schedules a move task."""
         reactor.callLater(0, self.moveTask, x1, y1, x2, y2)
 
     def checkEndTask(self):
-        """ Task to perform to check whether the game has ended."""
+        """Task to perform to check whether the game has ended."""
         raise NotImplementedError
 
     def checkEnd(self):
-        """ Schedules an end check """
+        """Schedules an end check"""
         reactor.callLater(0, self.checkEndTask)
 
     def handleIllegalMove(self, reason):
-        """ Handles an illegal move."""
+        """Handles an illegal move."""
         self.display.handleIllegalMove(reason)
 
     def makeDisplayDrawBoard(self):
-        """ Makes the display redraw the board."""
+        """Makes the display redraw the board."""
         self.display.drawBoard(self.lightBoard)
 
     def makeDisplayDrawChecks(self, check_positions):
@@ -92,7 +87,6 @@ class GameEngine():
 
 
 class TwoPlayersOnOneBoard(GameEngine):
-
     def __init__(self, gameEngine):
         """
         Constructor.
@@ -120,9 +114,11 @@ class TwoPlayersOnOneBoard(GameEngine):
                         position = piece.position
                         pieceIndex = i + col * 24
                         self.lightBoard.setPiece(pieceIndex, color, position, natures)
-                        if (piece.position is not None) and (piece.position is not False):
+                        if (piece.position is not None) and (
+                            piece.position is not False
+                        ):
                             self.makeDisplayDrawBoard()
-                        elif (piece.position is False):
+                        elif piece.position is False:
                             self.display.updatePane()
 
     def moveTask(self, mov):
@@ -131,7 +127,7 @@ class TwoPlayersOnOneBoard(GameEngine):
             self.chessBoard.move(x1, y1, x2, y2, disp=False)
             self.lightBoard.move(x1, y1, x2, y2)
             color = "Whites" if (self.validMovesCounter % 2 == 0) else "Blacks"
-            self.display.addMessage(color + " move from ({},{}) to ({},{})".format(x1, y1, x2, y2))
+            self.display.addMessage(color + f" move from ({x1},{y1}) to ({x2},{y2})")
             self.validMovesCounter += 1
             self.display.setLastMove(x1, y1, x2, y2)
             self.makeDisplayDrawBoard()
@@ -147,7 +143,7 @@ class TwoPlayersOnOneBoard(GameEngine):
     def autoMove(self):
         try:
             return self.chessBoard.auto_move()
-        except IllegalMove as e: # In case the game has ended
+        except IllegalMove as e:  # In case the game has ended
             self.handleIllegalMove(str(e))
 
     def checkEndTask(self):
@@ -156,7 +152,6 @@ class TwoPlayersOnOneBoard(GameEngine):
 
 
 class OnePlayerOnNetwork(GameEngine):
-
     def __init__(self, gameEngine, name, address=None, color=0):
         # raise NotImplementedError("Server not yet implemented")
         if not address:
@@ -166,10 +161,10 @@ class OnePlayerOnNetwork(GameEngine):
 
         self.name = name
         self.color = color
-        self.turn = -1 # 0 = White is playing, 1 = Black is playing
+        self.turn = -1  # 0 = White is playing, 1 = Black is playing
         self.lightBoard = gameEngine.lightBoard
         self.display = gameEngine.display
-        if self.color == 1: # 1 = black
+        if self.color == 1:  # 1 = black
             self.display.flipDisplay(True)
 
         self.loopingCall = gameEngine.loopingCall
@@ -179,10 +174,11 @@ class OnePlayerOnNetwork(GameEngine):
         try:
             attempt = connectProtocol(point, self.protocol)
             attempt.addErrback(self.connectionFailed)
-            attempt.addTimeout(CONNECTION_WAITING_TIME, reactor,
-                               onTimeoutCancel=self.connectionFailed)
+            attempt.addTimeout(
+                CONNECTION_WAITING_TIME, reactor, onTimeoutCancel=self.connectionFailed
+            )
             self.display.addMessage("Connecting to remote server...")
-        except:
+        except Exception:
             self.connectionFailed()
 
     def handleInit(self):
@@ -218,12 +214,12 @@ class OnePlayerOnNetwork(GameEngine):
             self.protocol.sendMessage(msg)
 
     def handleMove(self, description):
-        """ Executes a move received from the server """
+        """Executes a move received from the server"""
         self.turn = (self.turn + 1) % 2
         x1, y1, x2, y2 = description
         self.lightBoard.move(x1, y1, x2, y2)
         color = "Whites" if (self.turn == 0) else "Blacks"
-        self.display.addMessage(color+" move from ({},{}) to ({},{})".format(x1, y1, x2, y2))
+        self.display.addMessage(color + f" move from ({x1},{y1}) to ({x2},{y2})")
         self.display.setLastMove(x1, y1, x2, y2)
         self.makeDisplayDrawBoard()
         # print("cb.move({},{},{},{})".format(x1, y1, x2, y2))
@@ -244,7 +240,7 @@ class OnePlayerOnNetwork(GameEngine):
 
     def handleDisconnection(self, description):
         # if self.display is None:
-            # return
+        # return
         self.display.addMessage("Disconnected from server")
         self.display.addMessage(description.__str__())
         self.suspend()
