@@ -149,17 +149,42 @@ class Canvas:
         self.surface.set_clip(None if r is None else self.rect(r))
 
 
+def _split_word(word, font, width):
+    """Split a word too long for a line, preferably after a separator."""
+    pieces = []
+    while font.size(word)[0] > width and len(word) > 1:
+        cut = len(word) - 1
+        while cut > 1 and font.size(word[:cut])[0] > width:
+            cut -= 1
+        # Break after a path separator or a dash, when there is one
+        breaks = [i + 1 for i, ch in enumerate(word[:cut]) if ch in "/\\-_."]
+        if breaks and breaks[-1] > cut // 2:
+            cut = breaks[-1]
+        pieces.append(word[:cut])
+        word = word[cut:]
+    return pieces + [word]
+
+
 def _wrap(text, font, width):
-    """Split a text into lines that fit in ``width`` points."""
+    """Split a text into lines that fit in ``width`` points.
+
+    Lines are broken between words, and words longer than a line (like file
+    paths) are broken too.
+    """
     lines, line = [], ""
     for word in text.split(" "):
-        candidate = word if not line else line + " " + word
-        if font.size(candidate)[0] <= width or not line:
-            line = candidate
-        else:
-            lines.append(line)
-            line = word
-    lines.append(line)
+        for part in _split_word(word, font, width):
+            candidate = part if not line else line + " " + part
+            if font.size(candidate)[0] <= width or not line:
+                line = candidate
+            else:
+                lines.append(line)
+                line = part
+            if font.size(line)[0] > width:  # only possible for a single part
+                lines.append(line)
+                line = ""
+    if line or not lines:
+        lines.append(line)
     return lines
 
 
@@ -651,14 +676,30 @@ class ChessDisplay:
         chessBoard = getattr(self.gameEngine, "chessBoard", None)
         return None if chessBoard is None else chessBoard.end_game()
 
+    def _ask_path(self, extension):
+        """Ask the user where to save a file, with a dialog of the system.
+
+        :return: The chosen path, None if the user cancelled, or a path in the
+            Downloads folder if no dialog is available.
+        """
+        default = export.export_name(extension)
+        path = export.ask_save_path(default)
+        if path is export.NO_DIALOG:
+            self.addMessage("No file dialog available, saving in the default folder")
+            return default
+        if path is None:
+            self.addMessage("Saving cancelled")
+        return path
+
     def exportText(self, path=None):
         """Save the moves of the current game as a text (PGN) file.
 
-        :param path: Path of the file, by default a new file in the Downloads
-            folder (see :func:`~schroedingerchess.export.export_name`).
-        :return: The path of the file.
+        :param path: Path of the file. By default, a dialog asks the user.
+        :return: The path of the file, or None if the user cancelled.
         """
-        path = path or export.export_name("pgn")
+        path = path or self._ask_path("pgn")
+        if path is None:
+            return None
         record = export.game_record(self.move_history, outcome=self._outcome())
         with open(path, "w", encoding="utf-8") as file:
             file.write(record)
@@ -668,11 +709,12 @@ class ChessDisplay:
     def exportGif(self, path=None):
         """Save an animation of the current game as a GIF file.
 
-        :param path: Path of the file, by default a new file in the Downloads
-            folder (see :func:`~schroedingerchess.export.export_name`).
-        :return: The path of the file.
+        :param path: Path of the file. By default, a dialog asks the user.
+        :return: The path of the file, or None if the user cancelled.
         """
-        path = path or export.export_name("gif")
+        path = path or self._ask_path("gif")
+        if path is None:
+            return None
         self.addMessage("Rendering the animation...")
         export.export_gif(self.move_history, path, self)
         self.addMessage(f"Animation saved as {path}")

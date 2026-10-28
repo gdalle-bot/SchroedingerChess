@@ -232,3 +232,12 @@ def test_online_selection(display):
     assert not display.isSelectable(4, 1) and not display.isSelectable(4, 6)
     engine.turn = 1
     assert display.isSelectable(4, 6) and not display.isSelectable(4, 1)
+
+
+def test_wrap_long_words():
+    font = pygame.font.SysFont("arial", 15)
+    path = "/Users/someone/Downloads/schroedinger-chess-20261028-171512.gif"
+    lines = _wrap(f"Animation saved as {path}", font, 120)
+    assert all(font.size(line)[0] <= 120 for line in lines)
+    assert "".join(lines).replace(" ", "") == f"Animationsavedas{path}"
+    assert _wrap("", font, 120) == [""]

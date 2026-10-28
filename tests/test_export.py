@@ -83,9 +83,67 @@ def test_gui_exports(display, tmp_path):
         assert export.read_game_record(file.read()) == MOVES
     gif = display.exportGif(str(tmp_path / "game.gif"))
     assert os.path.getsize(gif) > 0
-    assert "Animation saved" in " ".join(display.message_history[-3:])
+    assert any("Animation saved" in line for line in display.message_history)
 
 
 def test_export_name(tmp_path):
     path = export.export_name("pgn", str(tmp_path))
     assert path.startswith(str(tmp_path)) and path.endswith(".pgn")
+
+
+class FakeRun:
+    def __init__(self, returncode=0, stdout="", stderr="", raises=None):
+        self.result = type(
+            "R", (), dict(returncode=returncode, stdout=stdout, stderr=stderr)
+        )
+        self.raises = raises
+        self.calls = []
+
+    def __call__(self, args, **kwargs):
+        self.calls.append(args)
+        if self.raises:
+            raise self.raises
+        return self.result
+
+
+@pytest.mark.parametrize("platform", ["darwin", "linux", "win32"])
+@pytest.mark.parametrize(
+    ("run", "expected"),
+    [
+        (FakeRun(stdout="/home/me/game.pgn\n"), "/home/me/game.pgn"),
+        (FakeRun(stdout=""), None),  # Tk dialog cancelled
+        (FakeRun(returncode=1, stderr="execution error: User canceled. (-128)"), None),
+        (FakeRun(returncode=1, stderr="no display"), export.NO_DIALOG),
+        (FakeRun(raises=FileNotFoundError("osascript")), export.NO_DIALOG),
+    ],
+)
+def test_ask_save_path(monkeypatch, platform, run, expected):
+    monkeypatch.setattr(export.sys, "platform", platform)
+    monkeypatch.setattr(export.subprocess, "run", run)
+    if expected is None and "-128" in run.result.stderr and platform != "darwin":
+        expected = export.NO_DIALOG  # only osascript reports cancellations as errors
+    assert export.ask_save_path("/home/me/Downloads/game.pgn") == expected
+    command = run.calls[-1]
+    if platform == "darwin":
+        assert command[0] == "osascript" and 'default name "game.pgn"' in command[2]
+    else:
+        assert command[-2:] == ["/home/me/Downloads", "game.pgn"]
+
+
+@pytest.mark.parametrize(
+    ("answer", "saved"), [("chosen", True), (None, False), ("no dialog", True)]
+)
+def test_gui_save_dialog(display, tmp_path, monkeypatch, answer, saved):
+    chosen = str(tmp_path / "chosen.pgn")
+    default = str(tmp_path / "default.pgn")
+    monkeypatch.setattr(export, "export_name", lambda extension: default)
+    value = {"chosen": chosen, None: None, "no dialog": export.NO_DIALOG}[answer]
+    monkeypatch.setattr(export, "ask_save_path", lambda path: value)
+    display.state, display.mode = "PLAYING", "LOCAL"
+    display.setLastMove(*MOVES[0])
+    path = display.exportText()
+    if not saved:
+        assert path is None and "Saving cancelled" in display.message_history[-1]
+    else:
+        assert path == (chosen if answer == "chosen" else default)
+        assert os.path.exists(path)
