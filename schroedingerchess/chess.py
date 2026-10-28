@@ -54,6 +54,11 @@ def square_name(x, y):
     return "abcdefgh"[x] + str(y + 1)
 
 
+#: Number of consecutive half-moves without capture or pawn move after which
+#: the game is drawn: 50 moves by each player.
+FIFTY_MOVE_LIMIT = 100
+
+
 class IllegalMove(Exception):
     """Illegal move."""
 
@@ -108,7 +113,7 @@ class ChessPiece:
 class ChessBoard:
     """Chess board manipulation."""
 
-    def __init__(self, solver="enumeration"):
+    def __init__(self, solver="enumeration", fifty_move_rule=True):
         """Initialize the board.
 
         :param solver: How to check that the history is consistent:
@@ -116,10 +121,13 @@ class ChessBoard:
             default, faster) or ``"ilp"`` (see :meth:`quantum_explanation`).
             The enumeration falls back on the integer program when there are
             too many promoted pieces.
+        :param fifty_move_rule: Whether the game is drawn after 50 moves by each
+            player without capture or pawn move (see :attr:`halfmove_clock`).
         """
         if solver not in ("enumeration", "ilp"):
             raise ValueError(f"Unknown solver {solver!r}")
         self.solver = solver
+        self.fifty_move_rule = fifty_move_rule
         # Colorized lists of pieces
         white_pieces = (
             [
@@ -156,6 +164,7 @@ class ChessBoard:
         self.positions = [self.compute_position()]
         self.attacks = [self.compute_attack()]
         self.pieces_alive = [[16, 16]]
+        self.halfmove_clocks = [0]
 
     def __str__(self, guess=False, natures=False, letters=True):
         """Display the board in ASCII art."""
@@ -615,9 +624,30 @@ class ChessBoard:
                 )
         return None
 
+    @property
+    def halfmove_clock(self):
+        """Number of half-moves since the last capture or pawn move."""
+        return self.halfmove_clocks[-1]
+
+    def is_fifty_move_draw(self):
+        """Whether the 50-move rule ends the game now.
+
+        A checkmate on the last allowed move takes precedence, as in chess:
+        the rule only applies if the player to move still has a legal move.
+        """
+        if not self.fifty_move_rule or self.halfmove_clock < FIFTY_MOVE_LIMIT:
+            return False
+        self.fifty_move_rule = False
+        try:
+            return next(self.all_legal_moves_gen(), None) is not None
+        finally:
+            self.fifty_move_rule = True
+
     def add_move_to_history(self, x1, y1, x2, y2, piece, target_piece):
         """Add move to history (temporarily or not)."""
         cur_c, i = piece.color, piece.number
+        irreversible = target_piece is not None or "P" in piece.possible_natures
+        self.halfmove_clocks.append(0 if irreversible else self.halfmove_clock + 1)
         self.time += 1
         self.moves.append((x1, y1, x2, y2))
         self.nature_eliminations.append(self.nature_elimination(piece, x1, y1, x2, y2))
@@ -659,6 +689,7 @@ class ChessBoard:
             promoted_piece = self.pieces[cur_c][i + 8]
             promoted_piece.position = None
         self.pieces_alive.pop()
+        self.halfmove_clocks.pop()
         self.positions.pop()
         self.attacks.pop()
 
@@ -668,6 +699,11 @@ class ChessBoard:
 
         Raise IllegalMove exceptions detailing the various move invalidities.
         """
+        if self.fifty_move_rule and self.halfmove_clock >= FIFTY_MOVE_LIMIT:
+            raise IllegalMove(
+                "The game is drawn by the 50-move rule: each player played 50 "
+                "moves without any capture or pawn move"
+            )
         error = self.trivial_test_move(x1, y1, x2, y2)
         if error is not None:
             raise IllegalMove(error)
@@ -826,9 +862,15 @@ class ChessBoard:
         return legal_natures
 
     def end_game(self):
-        """Describe the outcome: ongoing, checkmate, stalemate or unclear."""
-        if len(self.all_legal_moves()) > 0:
-            return "Legal moves still exist"
+        """Describe the outcome: ongoing, checkmate, stalemate, unclear or draw."""
+        if self.is_fifty_move_draw():
+            return "Draw by the 50-move rule"
+        rule, self.fifty_move_rule = self.fifty_move_rule, False
+        try:
+            if len(self.all_legal_moves()) > 0:
+                return "Legal moves still exist"
+        finally:
+            self.fifty_move_rule = rule
         checkmate_possible = self.explanation(check=True) is not None
         stalemate_possible = self.explanation(check=False) is not None
         if checkmate_possible and stalemate_possible:
@@ -901,6 +943,7 @@ class LightBoard:
     """Lightweight board for the clients, with the possible natures of pieces."""
 
     def __init__(self):
+        self.halfmove_clock = 0  # half-moves since the last capture or pawn move
         self.pieces = []
         for j in range(8):
             self.pieces.append(
@@ -934,6 +977,10 @@ class LightBoard:
             assert len(natures) >= 1
             # Mark the target box as a dead piece if necessary
             j = self.getPieceIndex(x2, y2)
+            if j is not None or list(piece["natures"]) == ["P"]:
+                self.halfmove_clock = 0
+            else:
+                self.halfmove_clock += 1
             if j is not None:
                 piece2 = self.pieces[j]
                 self.setPiece(j, piece2["color"], False, piece2["natures"])
@@ -1011,6 +1058,10 @@ class LightBoard:
         return [
             p for p in self.pieces if p["color"] == color and p["position"] is False
         ]
+
+    def moves_until_fifty_move_draw(self):
+        """Number of moves (rounded up) before a draw by the 50-move rule."""
+        return max(0, -(-(FIFTY_MOVE_LIMIT - self.halfmove_clock) // 2))
 
     def wrapUp(self):
         """Serialize the board as a list of pieces."""

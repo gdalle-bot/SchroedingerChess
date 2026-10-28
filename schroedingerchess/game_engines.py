@@ -145,6 +145,8 @@ class TwoPlayersOnOneBoard(GameEngine):
                 f"{color}: {square_name(x1, y1)}-{square_name(x2, y2)}"
             )
             self.validMovesCounter += 1
+            if self.chessBoard.is_fifty_move_draw():
+                self.display.addMessage("Draw by the 50-move rule")
             self.updateLightBoard()
         except IllegalMove as e:
             self.handleIllegalMove(str(e))

@@ -291,6 +291,10 @@ class Game:
         self.chessBoard.move(x1, y1, x2, y2, disp=False)
         self.lightBoard.move(x1, y1, x2, y2)
         self.validMovesCounter += 1
+        if self.chessBoard.is_fifty_move_draw():
+            self.sendMessageToAll(
+                {"type": "chat", "content": "Draw by the 50-move rule"}
+            )
 
     def autoMove(self):
         """Let the computer choose a move."""

@@ -75,10 +75,21 @@ Under the standard arrangement, this is a legal game of chess, so the whole sequ
 40
 
 Threefold repetition is ill-suited to this variant, since a position does not describe the state of the game: the history matters.
-The 50-move rule, which only depends on the history, does guarantee termination.
+The 50-move rule, which only depends on the history, does guarantee termination, and this implementation applies it:
+after 50 moves by each player without any capture or pawn move, the game is drawn, unless the last move was a checkmate.
+It can be disabled with ``ChessBoard(fifty_move_rule=False)``.
+
+>>> for _ in range(15):
+...     for move in ["b1c3", "g8f6", "c3b1", "f6g8"]:
+...         _ = cb.move(*cb.translate_move((move[:2], move[2:])), disp=False)
+>>> cb.halfmove_clock
+100
+>>> cb.end_game()
+'Draw by the 50-move rule'
+
 
 **Proposition 7 (termination with the 50-move rule).**
-If a game ends after 100 consecutive half-moves without a capture or a pawn move, then every game lasts at most :math:`127 \times 100 + 126 = 12826` half-moves.
+If a game ends after 100 consecutive half-moves without a capture or a pawn move, as it does here, then every game lasts at most :math:`127 \times 100 + 126 = 12826` half-moves.
 
 *Proof.* Each of the 16 pawns makes at most 6 moves before promoting or being blocked forever, which gives at most 96 pawn moves.
 By Proposition 5 the kings are never captured, so there are at most 30 captures.

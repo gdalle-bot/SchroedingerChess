@@ -176,3 +176,11 @@ def test_high_resolution(monkeypatch, highdpi, scale):
     assert display._picture("wS", 80).get_size() == (80 * factor, 80 * factor)
     display.showError("Something went wrong")
     display.render()
+
+
+@pytest.mark.parametrize("clock", [0, 1, 85, 99, 100])
+def test_fifty_move_countdown(display, clock):
+    click(display, display._menu_buttons()["local"].rect.center)
+    display.gameEngine.lightBoard.halfmove_clock = clock
+    display.lightBoard = display.gameEngine.lightBoard
+    display.render()
