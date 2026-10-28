@@ -9,6 +9,8 @@ TITLE_FONT = os.path.join(ASSETS_DIR, "fonts", "CFRemingtonTypewriter-Regul.ttf"
 
 
 class InputBox:
+    """Text input field."""
+
     def __init__(self, x, y, w, h, text=""):
         self.COLOR_INACTIVE = (230, 230, 230)
         self.COLOR_ACTIVE = (255, 255, 255)
@@ -21,6 +23,7 @@ class InputBox:
         self.has_change = False
 
     def handle_event(self, event):
+        """Update the box after a mouse or keyboard event."""
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(event.pos):
                 self.active = not self.active
@@ -41,10 +44,12 @@ class InputBox:
 
     def update(self):
         # Resize the box if the text is too long.
+        """Resize the box if the text is too long."""
         width = max(200, self.txt_surface.get_width() + 10)
         self.rect.w = width
 
     def draw(self, screen):
+        """Draw the box on the screen."""
         pygame.draw.rect(screen, self.color, self.rect)
         pygame.draw.rect(screen, (0, 0, 0), self.rect, 2)
         screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
@@ -121,6 +126,7 @@ class ChessDisplay:
         self.drawPane()
 
     def setMenuMode(self):
+        """Go back to the main menu."""
         if self.state == "PLAYING":
             self.state = "MENU"
             self.drawMenu()
@@ -145,6 +151,7 @@ class ChessDisplay:
     def drawBoard(self, lightBoard):
         """
         Draws the board.
+
         :param lightBoard: The light board to draw. :see LightBoard
         """
         self.screen.blit(self.boardFlip if self.flip else self.board, (0, 0))
@@ -234,6 +241,7 @@ class ChessDisplay:
     def drawChecks(self, check_positions):
         """
         Draws the checks created by the last move.
+
         :param check_positions: List of the check positions.
         """
         self.check_positions = [[False for i in range(8)] for j in range(8)]
@@ -244,6 +252,7 @@ class ChessDisplay:
     def drawCheckMates(self, checkmate_positions):
         """
         Draws the checkmates created by the last move.
+
         :param checkmates_positions: List of the checkmate positions.
         """
         self.checkmate_positions = [[False for i in range(8)] for j in range(8)]
@@ -254,12 +263,14 @@ class ChessDisplay:
     def handleIllegalMove(self, reason):
         """
         Handles illegal moves.
+
         :param reason: Reason of the illegal move
         """
         self.addMessage(reason)
         self.updatePane()
 
     def setLastMove(self, x1, y1, x2, y2):
+        """Remember the last move, to highlight it."""
         self.last_move = (x1, y1, x2, y2)
 
     def update(self):
@@ -939,6 +950,7 @@ class ChessDisplay:
         pygame.display.flip()
 
     def drawPane(self):
+        """Draw the side pane with the messages, buttons and captured pieces."""
         pygame.draw.rect(
             self.screen,
             pygame.Color(200, 200, 200),
@@ -1057,8 +1069,8 @@ class ChessDisplay:
         self.boardFlip = pygame.transform.flip(self.board, False, True)
 
     def flipDisplay(self, newState):
-        """
-        Set the display orientation
+        """Set the display orientation.
+
         :param newState: True if the display has to be upside down
             (Black in the lower part)
         """
@@ -1068,6 +1080,7 @@ class ChessDisplay:
     def flipY(self, y):
         """
         Flip the y coordinate depending on the flip parameter
+
         :param y: The y coordinate
         """
         return y if self.flip else 7 - y
@@ -1075,6 +1088,7 @@ class ChessDisplay:
     def addMessage(self, message):
         """
         Split the incoming message to the screen size and add it to the history
+
         :param message: A string message
         """
         length = 0
@@ -1096,6 +1110,7 @@ class ChessDisplay:
         self.drawPane()
 
     def check_address_format(self, s):
+        """Check that an address has the form ``host:port``."""
         t = s.split(":")
         if len(t) != 2:
             return False

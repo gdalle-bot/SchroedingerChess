@@ -1,3 +1,5 @@
+"""Game server, which matches players and referees their games."""
+
 import json
 import time
 
@@ -38,6 +40,7 @@ class ChessServerProtocol(Protocol):
     def sendMessage(self, msg):
         """
         Sends a message to the client.
+
         :param msg: A dictionary representing a message.
         """
         self.transport.write(json.dumps(msg).encode())
@@ -45,6 +48,7 @@ class ChessServerProtocol(Protocol):
     def sendMessageToAll(self, msg):
         """
         Sends a message to the client and the other player's client.
+
         :param msg: A dictionary representing a message.
         """
         if self.game is not None:
@@ -57,6 +61,7 @@ class ChessServerProtocol(Protocol):
     def sendMessageToOther(self, msg):
         """
         Sends a message to the client and the other player's client.
+
         :param msg: A dictionary representing a message.
         """
         if self.game is not None:
@@ -69,6 +74,7 @@ class ChessServerProtocol(Protocol):
     def dataReceived(self, data):
         """
         Handles the reception of data by the server
+
         :param data: A byte representing a JSON-encoded object (default encoding UTF-8)
         """
         # msg = json.loads(data.decode())
@@ -96,6 +102,7 @@ class ChessServerProtocol(Protocol):
             # TODO : reduce lightboard update delay
 
     def handleGreetings(self, msg):
+        """Register the color requested by the player."""
         self.color = msg["color"]
         self.factory.assignColor(self.player_id, self.color)
 
@@ -103,11 +110,13 @@ class ChessServerProtocol(Protocol):
         """
         Handle messages received while waiting for a second player.
         All instructions are illegal.
+
         :param msg: A dictionary representing a message.
         """
         self.sendMessage({"type": "illegal-request", "request": msg})
 
     def handleMove(self, msg, auto=False):
+        """Play a move (or an automatic move) and broadcast it."""
         try:
             player = msg["color"]
             if auto:
@@ -124,12 +133,14 @@ class ChessServerProtocol(Protocol):
             self.sendMessage(msg)
 
     def handleEndGame(self, color):
+        """Schedule an end of game check."""
         if self.game is not None:
             reactor.callLater(0, self.game.checkEnd, color)
 
     def connectionLost(self, reason):
         """
         Handles the connection lost with the client (executes automatically).
+
         :param reason: Reason of the disconnection
         """
         if self.game is None:
@@ -149,6 +160,7 @@ class ChessServerProtocol(Protocol):
         self.transport.loseConnection()
 
     def split_messages(self, data):
+        """Split concatenated JSON messages received in one packet."""
         messages = []
         split = data.decode().split("}{")
         if len(split) == 1:
@@ -183,11 +195,13 @@ class ChessServer(Factory):
         self.playerIndex = 0  # total number of players ever connected
 
     def addWaitingPlayer(self, client):
+        """Add a new player to the waiting list and return its id."""
         self.waitingPlayers[self.playerIndex] = client
         self.playerIndex += 1
         return self.playerIndex - 1
 
     def assignColor(self, player_id, color):
+        """Put a waiting player in the queue of its color."""
         client = self.waitingPlayers.pop(player_id)
         if color == 0:
             self.waitingWhitePlayers[0].append(player_id)
@@ -205,6 +219,7 @@ class ChessServer(Factory):
         self.tryToMatchPlayers()
 
     def tryToMatchPlayers(self):
+        """Start games between waiting white and black players."""
         while (
             len(self.waitingBlackPlayers[0]) >= 1
             and len(self.waitingWhitePlayers[0]) >= 1
@@ -221,6 +236,7 @@ class ChessServer(Factory):
             self.gameIndex += 1
 
     def removePlayerFromWaitingList(self, player_id):
+        """Remove a player from the waiting lists."""
         if player_id in self.waitingPlayers:
             del self.waitingPlayers[player_id]
         elif player_id in self.waitingWhitePlayers[0]:
@@ -231,6 +247,7 @@ class ChessServer(Factory):
             del self.waitingBlackPlayers[1][player_id]
 
     def removeGame(self, game_id):
+        """Forget a finished game."""
         try:
             del self.games[game_id]
             print(f"Terminated game {game_id}")
@@ -258,11 +275,13 @@ class Game:
         self.notifyReady()
 
     def notifyReady(self):
+        """Tell both players that the game starts."""
         self.sendMessageToAll({"type": "status", "status": "ready"})
         self.white.state = "PLAYING"
         self.black.state = "PLAYING"
 
     def move(self, x1, y1, x2, y2, color):
+        """Play a move for a player, raising IllegalMove if it is invalid."""
         piece = self.chessBoard.grid[x1][y1]
         if piece is not None and piece.color != color:
             raise IllegalMove(
@@ -273,14 +292,17 @@ class Game:
         self.validMovesCounter += 1
 
     def autoMove(self):
+        """Let the computer choose a move."""
         return self.chessBoard.auto_move()
 
     def checkEnd(self, color):
+        """Send the outcome of the game to a player."""
         outcome = self.chessBoard.end_game()
         msg = {"type": "chat", "content": outcome}
         self.sendMessageTo(msg, color)
 
     def updateLightBoardTask(self):
+        """Recompute the possible natures of all pieces and send them."""
         for col in [0, 1]:
             for i, piece in enumerate(self.chessBoard.pieces[col]):
                 if piece is not None:
@@ -297,10 +319,12 @@ class Game:
         reactor.callLater(0.5, self.updateLightBoardTask)
 
     def sendMessageToAll(self, msg):
+        """Send a message to both players."""
         self.white.sendMessage(msg)
         self.black.sendMessage(msg)
 
     def sendMessageTo(self, msg, color):
+        """Send a message to the player of a given color."""
         if color == 0:
             self.white.sendMessage(msg)
         elif color == 1:
@@ -309,6 +333,7 @@ class Game:
             pass
 
     def disconnectPlayers(self):
+        """Disconnect both players."""
         self.white.disconnect()
         self.black.disconnect()
 
