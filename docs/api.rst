@@ -6,6 +6,11 @@ Chess logic
 
 .. automodule:: schroedingerchess.chess
 
+Consistency checks by enumeration
+---------------------------------
+
+.. automodule:: schroedingerchess.enumeration
+
 Computer player
 ---------------
 
