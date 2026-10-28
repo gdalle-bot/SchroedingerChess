@@ -4,7 +4,7 @@
 
 Implementation of Haft Schroedinger Chess, where chess pieces decide what they want to be...
 
-See the docs at https://gdalle.github.io/SchroedingerChess/
+See the docs at https://gdalle-bot.github.io/SchroedingerChess/
 
 To run the code, install [uv](https://docs.astral.sh/uv/) and clone this repository. Then, all it takes to play a game is to execute
 ```
@@ -18,3 +18,4 @@ To host an online game, start the server with `uv run schroedingerchess-server`.
 ## Development
 
 Run the tests with `uv run pytest`, and lint and format the code with `uv run ruff check` and `uv run ruff format`.
+Build the documentation with `uv run --group docs sphinx-build docs docs/_build`.

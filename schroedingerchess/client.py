@@ -1,3 +1,5 @@
+"""Network protocol of the game client."""
+
 import json
 
 from twisted.internet.protocol import Protocol
@@ -9,12 +11,14 @@ class ChessClientProtocol(Protocol):
     def __init__(self, client):
         """
         Constructor.
+
         :param client: Client to bind to the protocol
         """
         self.client = client  # reference to the client (a GameEngine object)
         self.state = "INITIALIZATION"
 
     def connectionMade(self):
+        """Send the player information to the server."""
         self.sendMessage(
             {
                 "type": "player-info",
@@ -26,6 +30,7 @@ class ChessClientProtocol(Protocol):
     def dataReceived(self, data):
         """
         Handles the reception of data from the server.
+
         :param data: A byte representing a JSON-encoded object (default encoding UTF-8)
         """
         messages = self.split_messages(data)
@@ -61,6 +66,7 @@ class ChessClientProtocol(Protocol):
     def connectionLost(self, reason):
         """
         Handles the connection lost with the server.
+
         :param reason: Reason of the disconnection
         """
         self.client.handleDisconnection(reason)
@@ -68,11 +74,13 @@ class ChessClientProtocol(Protocol):
     def sendMessage(self, msg):
         """
         Sends a message to the server using the protocol.
+
         :param msg: A dictionary representing a message.
         """
         self.transport.write(json.dumps(msg).encode())
 
     def split_messages(self, data):
+        """Split concatenated JSON messages received in one packet."""
         messages = []
         split = data.decode().split("}{")
         if len(split) == 1:

@@ -1,3 +1,5 @@
+"""Game engines, which connect the display to a local or remote chess board."""
+
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
@@ -14,6 +16,8 @@ CONNECTION_WAITING_TIME = 10  # seconds
 
 class GameEngine:
     # TODO fix JSON encore / decode error
+    """Base game engine, used while in the menu."""
+
     def start(self):
         """Starts the game engine. Create the window and initiate the reaction loop."""
         self.lightBoard = LightBoard()
@@ -80,16 +84,21 @@ class GameEngine:
         self.display.drawBoard(self.lightBoard)
 
     def makeDisplayDrawChecks(self, check_positions):
+        """Make the display highlight the kings in check."""
         self.display.drawChecks(check_positions)
 
     def makeDisplayDrawChecksMates(self, checkmate_positions):
+        """Make the display highlight the checkmated kings."""
         self.display.drawCheckMates(checkmate_positions)
 
 
 class TwoPlayersOnOneBoard(GameEngine):
+    """Game engine for two players sharing the same screen."""
+
     def __init__(self, gameEngine):
         """
         Constructor.
+
         :param gameEngine: The initial game engine.
         """
         self.chessBoard = ChessBoard()
@@ -100,6 +109,7 @@ class TwoPlayersOnOneBoard(GameEngine):
 
     @inlineCallbacks
     def updateLightBoard(self):
+        """Recompute the possible natures of all pieces, one at a time."""
         nb = self.validMovesCounter
         for col in [0, 1]:
             for i, piece in enumerate(self.chessBoard.pieces[col]):
@@ -122,6 +132,7 @@ class TwoPlayersOnOneBoard(GameEngine):
                             self.display.updatePane()
 
     def moveTask(self, mov):
+        """Play a move on the board and update the display."""
         x1, y1, x2, y2 = mov[0], mov[1], mov[2], mov[3]
         try:
             self.chessBoard.move(x1, y1, x2, y2, disp=False)
@@ -136,22 +147,27 @@ class TwoPlayersOnOneBoard(GameEngine):
             self.handleIllegalMove(str(e))
 
     def move(self, x1, y1, x2, y2):
+        """Schedule a move task."""
         d = Deferred()
         d.addCallback(self.moveTask).addErrback(log.err)  # DEBUG
         reactor.callLater(0, d.callback, (x1, y1, x2, y2))
 
     def autoMove(self):
+        """Let the computer choose a move."""
         try:
             return self.chessBoard.auto_move()
         except IllegalMove as e:  # In case the game has ended
             self.handleIllegalMove(str(e))
 
     def checkEndTask(self):
+        """Display the outcome of the game."""
         outcome = self.chessBoard.end_game()
         self.display.addMessage(outcome)
 
 
 class OnePlayerOnNetwork(GameEngine):
+    """Game engine for one player connected to a remote server."""
+
     def __init__(self, gameEngine, name, address=None, color=0):
         # raise NotImplementedError("Server not yet implemented")
         if not address:
@@ -182,14 +198,17 @@ class OnePlayerOnNetwork(GameEngine):
             self.connectionFailed()
 
     def handleInit(self):
+        """Handle the connection to the server."""
         self.display.addMessage("Connection established.")
         self.display.addMessage("Waiting for an opponent...")
 
     def handleReady(self):
+        """Handle the start of the game."""
         self.display.addMessage("Found an opponent. White begins...")
         self.turn = 0
 
     def moveTask(self, x1, y1, x2, y2):
+        """Send a move to the server."""
         if self.turn != self.color:
             self.display.addMessage("Trying to move out of turn")
         else:
@@ -197,9 +216,11 @@ class OnePlayerOnNetwork(GameEngine):
             self.protocol.sendMessage(msg)
 
     def autoMove(self):
+        """Schedule an automatic move request."""
         reactor.callLater(0, self.autoMoveTask)
 
     def autoMoveTask(self):
+        """Ask the server to choose a move."""
         if self.turn != self.color:
             self.display.addMessage("Trying to move out of turn")
         else:
@@ -207,6 +228,7 @@ class OnePlayerOnNetwork(GameEngine):
             self.protocol.sendMessage(msg)
 
     def checkEndTask(self):
+        """Ask the server for the outcome of the game."""
         if self.turn == -1:
             self.addMessage("The game has not started yet")
         else:
@@ -225,22 +247,27 @@ class OnePlayerOnNetwork(GameEngine):
         # print("cb.move({},{},{},{})".format(x1, y1, x2, y2))
 
     def handleUpdateBoard(self, description):
+        """Replace the board with the one sent by the server."""
         self.lightBoard.unwrap(description)
         self.makeDisplayDrawBoard()
 
     def handleChecks(self, description):
+        """Highlight the kings in check."""
         self.makeDisplayDrawChecks(description)
 
     def handleCheckMates(self, description):
+        """Highlight the checkmated kings."""
         self.makeDisplayDrawCheckMates(description)
 
     def connectionFailed(self, *kwargs):
+        """Go back to the menu when the server cannot be reached."""
         self.display.setMenuMode()
         self.display.addMessage("The server could not be reached.")
 
     def handleDisconnection(self, description):
         # if self.display is None:
         # return
+        """Go back to the menu after a disconnection."""
         self.display.addMessage("Disconnected from server")
         self.display.addMessage(description.__str__())
         self.suspend()

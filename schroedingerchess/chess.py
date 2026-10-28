@@ -690,9 +690,11 @@ class ChessBoard:
                 pass
 
     def legal_moves_from(self, x1, y1):
+        """List all legal moves starting from square ``(x1, y1)``."""
         return list(self.legal_moves_from_gen(x1, y1))
 
     def all_legal_moves(self):
+        """List all legal moves ``(x1, y1, x2, y2)`` of the current player, sorted."""
         return sorted(list(self.all_legal_moves_gen()))
 
     def guessed_board(self):
@@ -724,6 +726,7 @@ class ChessBoard:
         :param intelligent: If True, try the engine suggestions from best to
             worst. Otherwise (or if none of them is legal), pick a legal move at
             random.
+
         :param depth: Search depth of the engine, in plies.
         :raise IllegalMove: If the game is over.
         :return: Move ``(x1, y1, x2, y2)``.
@@ -766,6 +769,7 @@ class ChessBoard:
         return legal_natures
 
     def end_game(self):
+        """Describe the outcome: ongoing, checkmate, stalemate or unclear."""
         if len(self.all_legal_moves()) > 0:
             return "Legal moves still exist"
         problem1, status1 = self.quantum_explanation(check=True)
@@ -780,6 +784,10 @@ class ChessBoard:
             return "Stalemate"
 
     def translate_move(self, move):
+        """Convert a move between coordinates and algebraic notation.
+
+        For instance, ``(4, 1, 4, 3)`` and ``("e2", "e4")`` are the same move.
+        """
         if len(move) == 4:
             x1, y1, x2, y2 = move
             a = chr(97 + x1)
@@ -794,6 +802,7 @@ class ChessBoard:
             return (x1, y1, x2, y2)
 
     def one_player_game(self):
+        """Play a game against the computer in the terminal."""
         print(self.__str__())
         while True:
             if self.time % 2 == 1:
@@ -834,6 +843,8 @@ class ChessBoard:
 
 
 class LightBoard:
+    """Lightweight board for the clients, with the possible natures of pieces."""
+
     def __init__(self):
         self.pieces = []
         for j in range(8):
@@ -858,6 +869,10 @@ class LightBoard:
             )
 
     def move(self, x1, y1, x2, y2):
+        """Move a piece and update its possible natures.
+
+        Other undetermined pieces are marked as pending (``"E"``).
+        """
         i = self.getPieceIndex(x1, y1)
         if i is not None:
             piece = self.pieces[i]
@@ -883,6 +898,7 @@ class LightBoard:
 
     @staticmethod
     def possibleNaturesFromMove(x1, y1, x2, y2, color, natures):
+        """Filter the natures compatible with a move (``["E"]`` for a promotion)."""
         h = x2 - x1
         v = y2 - y1
         output_natures = []
@@ -925,6 +941,7 @@ class LightBoard:
         self.pieces[i] = {"position": position, "color": int(color), "natures": natures}
 
     def getPiece(self, x, y):
+        """Return the piece on square ``(x, y)``, or None."""
         for piece in self.pieces:
             if (piece["position"] is not None) and (piece["position"] is not False):
                 a, b = piece["position"]
@@ -933,6 +950,7 @@ class LightBoard:
         return None
 
     def getPieceIndex(self, x, y):
+        """Return the index of the piece on square ``(x, y)``, or None."""
         for i, piece in enumerate(self.pieces):
             if (piece["position"] is not None) and (piece["position"] is not False):
                 a, b = piece["position"]
@@ -941,14 +959,17 @@ class LightBoard:
         return None
 
     def getDeadPieces(self, color):
+        """List the captured pieces of a given color."""
         return [
             p for p in self.pieces if p["color"] == color and p["position"] is False
         ]
 
     def wrapUp(self):
+        """Serialize the board as a list of pieces."""
         return self.pieces
 
     def unwrap(self, wrap):
+        """Load the board from a list of pieces."""
         self.pieces = wrap
 
 
