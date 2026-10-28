@@ -8,6 +8,8 @@ piece, which is often unknown in this variant.
 import datetime
 import os
 import re
+import subprocess
+import sys
 
 from .chess import ChessBoard, LightBoard, square_name
 
@@ -201,3 +203,71 @@ def export_name(extension, folder=None):
     return os.path.join(
         folder or export_folder(), f"schroedinger-chess-{stamp}.{extension}"
     )
+
+
+#: Returned by :func:`ask_save_path` when no file dialog can be shown.
+NO_DIALOG = object()
+
+_TK_DIALOG = """
+import sys, tkinter, tkinter.filedialog
+root = tkinter.Tk()
+root.withdraw()
+root.attributes("-topmost", True)
+folder, name = sys.argv[1], sys.argv[2]
+extension = name.rsplit(".", 1)[-1]
+path = tkinter.filedialog.asksaveasfilename(
+    title="Save the game",
+    initialdir=folder,
+    initialfile=name,
+    defaultextension="." + extension,
+    filetypes=[(extension.upper() + " files", "*." + extension), ("All files", "*")],
+)
+print(path or "", end="")
+"""
+
+
+def _osascript_dialog(folder, name):
+    script = (
+        'POSIX path of (choose file name with prompt "Save the game" '
+        f'default name "{name}" default location (POSIX file "{folder}"))'
+    )
+    result = subprocess.run(
+        ["osascript", "-e", script], capture_output=True, text=True, timeout=600
+    )
+    if result.returncode != 0:
+        # osascript fails with error -128 when the user cancels
+        if "-128" in result.stderr:
+            return ""
+        raise OSError(result.stderr)
+    return result.stdout.strip()
+
+
+def _tk_dialog(folder, name):
+    result = subprocess.run(
+        [sys.executable, "-c", _TK_DIALOG, folder, name],
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    if result.returncode != 0:
+        raise OSError(result.stderr)
+    return result.stdout.strip()
+
+
+def ask_save_path(default):
+    """Ask the user where to save a file, with a native dialog.
+
+    The dialog runs in a separate process, so that it cannot interfere with
+    the pygame window: ``osascript`` on macOS, and Tk elsewhere.
+
+    :param default: Suggested path.
+    :return: The chosen path, None if the user cancelled, or :data:`NO_DIALOG`
+        if no dialog could be shown.
+    """
+    folder, name = os.path.split(default)
+    dialog = _osascript_dialog if sys.platform == "darwin" else _tk_dialog
+    try:
+        path = dialog(folder, name)
+    except (OSError, subprocess.SubprocessError):
+        return NO_DIALOG
+    return path or None

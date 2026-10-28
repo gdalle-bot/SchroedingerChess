@@ -115,7 +115,7 @@ Saving a game
 True
 
 It can also render a game as an animated GIF, with :func:`~schroedingerchess.export.export_gif`.
-In the graphical interface, the "Save as text" and "Save as GIF" buttons save the current game in your Downloads folder.
+In the graphical interface, the "Save as text" and "Save as GIF" buttons ask where to save the current game.
 
 Playing against the computer
 ----------------------------
