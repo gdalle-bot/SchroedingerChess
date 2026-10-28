@@ -137,9 +137,11 @@ and the piece from c1 travels to g7 along diagonals only, so that it can be the 
 >>> cb.all_legal_natures(cb.grid[5][7])  # the piece from c1, now on f8
 ['Q', 'B']
 >>> cb.end_game()
-'Result unclear'
->>> play(prefix + ending, solver="ilp").end_game()
-'Result unclear'
+'Result unclear: checkmate in 33% of the compatible arrangements, stalemate in 67%'
+>>> play(prefix + ending, solver="ilp").explanation(check=True) is not None
+True
+>>> play(prefix + ending, solver="ilp").explanation(check=False) is not None
+True
 
 In the final position, the black king on a8 cannot move: a7, b7 and b8 are attacked by the white pawns, under every arrangement.
 If the piece on f8 is the queen, it attacks a8 along the eighth rank, and black is checkmated.
@@ -152,6 +154,25 @@ Changing the last moves gives a definite stalemate (the piece from c1 stays on g
 'Stalemate'
 >>> play(prefix + "b2d4 b8a8 c5c6 a8b8 c6c7 b8a8 b6b7".split(), "enumeration").end_game()
 'Current player checkmated'
+
+**How undetermined?**
+We can count the arrangements of :math:`\mathrm{Cons}(H)` leading to each outcome (:meth:`~schroedingerchess.chess.ChessBoard.outcome_shares`).
+Both players only interact through the identities of their kings, so the number of compatible arrangements is
+
+.. math::
+
+   |\mathrm{Cons}(H)| = \sum_{k_0, k_1 \in \mathcal{M}} N_0(k_0, k_1) \, N_1(k_1, k_0),
+
+where :math:`N_c(k, k')` is the number of arrangements of color :math:`c` compatible with its own moves,
+whose king is piece :math:`k`, and under which the moves of :math:`c` never attack the enemy king if it is piece :math:`k'`.
+In the game above, 270 arrangements remain: 90 give a checkmate (the piece on f8 is the queen) and 180 a stalemate (it is a bishop).
+
+>>> cb.count_explanations(check=True), cb.count_explanations(check=False)
+(90, 180)
+>>> cb.outcome_shares()
+{'checkmate': 0.3333333333333333, 'stalemate': 0.6666666666666666}
+
+These shares weigh all arrangements equally, which nothing in the rules justifies: they describe the uncertainty, they are not probabilities.
 
 The original rules do not say what happens in the undetermined case.
 A natural convention, in the spirit of the game, is to only declare a checkmate when every compatible arrangement gives one, and a draw otherwise.
