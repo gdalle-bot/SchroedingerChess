@@ -19,6 +19,7 @@ For instance, "if my piece on a6 is my king, then your piece on a5 cannot be a r
 All three constraints are linear in binary variables, so legality is the feasibility of an integer linear program (ILP).
 It is implemented in :meth:`~schroedingerchess.chess.ChessBoard.quantum_explanation` with `PuLP <https://github.com/coin-or/pulp>`_,
 and solved with `HiGHS <https://highs.dev/>`_.
+By default, the game now solves the same problem by enumeration, which is faster (see :doc:`benchmark`).
 
 Notations
 ---------

@@ -5,7 +5,7 @@ import itertools
 import numpy as np
 import pulp
 
-from . import engine
+from . import engine, enumeration
 
 colors = list(range(2))
 piece_numbers = list(range(16))
@@ -92,8 +92,18 @@ class ChessPiece:
 class ChessBoard:
     """Chess board manipulation."""
 
-    def __init__(self):
-        """Initialize the board."""
+    def __init__(self, solver="enumeration"):
+        """Initialize the board.
+
+        :param solver: How to check that the history is consistent:
+            ``"enumeration"`` (see :mod:`schroedingerchess.enumeration`, the
+            default, faster) or ``"ilp"`` (see :meth:`quantum_explanation`).
+            The enumeration falls back on the integer program when there are
+            too many promoted pieces.
+        """
+        if solver not in ("enumeration", "ilp"):
+            raise ValueError(f"Unknown solver {solver!r}")
+        self.solver = solver
         # Colorized lists of pieces
         white_pieces = (
             [
@@ -454,7 +464,8 @@ class ChessBoard:
             prev_c = 1 - cur_c
 
             for s in range(64):
-                if self.attacks[T][s, prev_c, :, :].sum() < 0.5:
+                # Squares without attacks only matter if the king must be in check
+                if check is False and self.attacks[T][s, prev_c, :, :].sum() < 0.5:
                     continue
                 if self.positions[T][s, cur_c, major_piece_numbers].sum() < 0.5:
                     continue
@@ -500,14 +511,33 @@ class ChessBoard:
         n = s[3][1]
         return c, i, n
 
-    def update_guess(self, problem):
-        """Update guess with MIP solution."""
+    def explanation(self, check=None):
+        """Find natures of the pieces that explain the history.
+
+        :param check: If True (resp. False), also require the current player to
+            be in check (resp. not in check).
+        :return: Dictionary mapping ``(color, number)`` to a nature, or None if
+            the history cannot be explained.
+        """
+        if self.solver == "enumeration":
+            try:
+                return enumeration.explanation(self, check=check)
+            except enumeration.TooManyConfigurations:
+                pass  # many promoted pieces: fall back on the integer program
+        problem, status = self.quantum_explanation(check=check)
+        if status != 1:
+            return None
+        solution = {}
         for v in problem.variables():
-            if not v.name.startswith("z_"):
-                continue
-            if v.varValue is not None and round(v.varValue) == 1:
+            if v.name.startswith("z_") and round(v.varValue or 0) == 1:
                 c, i, n = self.parse_variable(v)
-                self.pieces[c][i].nature_guess = n
+                solution[(c, i)] = n
+        return solution
+
+    def update_guess(self, solution):
+        """Update the guessed natures with a solution of :meth:`explanation`."""
+        for (c, i), n in solution.items():
+            self.pieces[c][i].nature_guess = n
 
     def trivial_test_move(self, x1, y1, x2, y2):
         """Check obvious failures."""
@@ -620,11 +650,11 @@ class ChessBoard:
         self.add_move_to_history(x1, y1, x2, y2, piece, target_piece)
 
         # Check quantum failures (requires history with last move)
-        problem, status = self.quantum_explanation()
+        solution = self.explanation()
 
         self.delete_move_from_history(x1, y1, x2, y2, piece, target_piece)
 
-        if status != 1:
+        if solution is None:
             error = (
                 "Trying to perform a move that is illegal for any "
                 + "initial piece configuration"
@@ -632,11 +662,11 @@ class ChessBoard:
             raise IllegalMove(error)
 
         if full_result:
-            return problem
+            return solution
         else:
             return True
 
-    def perform_move(self, x1, y1, x2, y2, problem):
+    def perform_move(self, x1, y1, x2, y2, solution):
         """Perform a move, assuming it is valid."""
         piece = self.grid[x1][y1]
         target_piece = self.grid[x2][y2]
@@ -653,7 +683,7 @@ class ChessBoard:
         if target_piece is not None:
             target_piece.position = False
 
-        self.update_guess(problem)
+        self.update_guess(solution)
 
     def move(self, x1, y1, x2, y2, disp=True):
         """
@@ -661,8 +691,8 @@ class ChessBoard:
 
         Will raise IllegalMove if the move is not valid.
         """
-        problem = self.test_move(x1, y1, x2, y2, full_result=True)
-        self.perform_move(x1, y1, x2, y2, problem)
+        solution = self.test_move(x1, y1, x2, y2, full_result=True)
+        self.perform_move(x1, y1, x2, y2, solution)
         if disp:
             print(self.__str__(guess=0))
         return True
@@ -753,8 +783,7 @@ class ChessBoard:
         piece.forbidden_natures = [
             other_n for other_n in major_piece_natures if other_n != n
         ]
-        problem, status = self.quantum_explanation()
-        is_legal_nature_n = status == 1
+        is_legal_nature_n = self.explanation() is not None
         piece.forbidden_natures = []
         return is_legal_nature_n
 
@@ -772,10 +801,8 @@ class ChessBoard:
         """Describe the outcome: ongoing, checkmate, stalemate or unclear."""
         if len(self.all_legal_moves()) > 0:
             return "Legal moves still exist"
-        problem1, status1 = self.quantum_explanation(check=True)
-        problem2, status2 = self.quantum_explanation(check=False)
-        checkmate_possible = status1 == 1
-        stalemate_possible = status2 == 1
+        checkmate_possible = self.explanation(check=True) is not None
+        stalemate_possible = self.explanation(check=False) is not None
         if checkmate_possible and stalemate_possible:
             return "Result unclear"
         elif checkmate_possible:

@@ -10,9 +10,9 @@ def play(cb, moves):
         cb.move(*move, disp=False)
 
 
-@pytest.fixture
-def cb():
-    return ChessBoard()
+@pytest.fixture(params=["enumeration", "ilp"])
+def cb(request):
+    return ChessBoard(solver=request.param)
 
 
 def test_initial_natures(cb):
@@ -68,8 +68,7 @@ def test_test_move_does_not_mutate(cb):
     assert (cb.time, len(cb.moves), cb.grid) == before
 
 
-def test_promotion():
-    cb = ChessBoard()
+def test_promotion(cb):
     moves = [
         (1, 1, 1, 3), (6, 6, 6, 4),
         (1, 3, 1, 4), (6, 4, 6, 3),
@@ -103,3 +102,15 @@ def test_end_game(cb):
     assert cb.end_game() == "Legal moves still exist"
     # 16 pawn moves, plus 14 knight jumps since any major piece may be a knight
     assert len(cb.all_legal_moves()) == 30
+
+
+def test_not_in_check_at_start(cb):
+    # Regression: the integer program skipped squares without any attack,
+    # so the king could be "in check" on them
+    assert cb.explanation(check=True) is None
+    assert cb.explanation(check=False) is not None
+
+
+def test_unknown_solver():
+    with pytest.raises(ValueError):
+        ChessBoard(solver="magic")
