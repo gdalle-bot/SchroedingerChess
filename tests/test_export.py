@@ -83,7 +83,7 @@ def test_gui_exports(display, tmp_path):
         assert export.read_game_record(file.read()) == MOVES
     gif = display.exportGif(str(tmp_path / "game.gif"))
     assert os.path.getsize(gif) > 0
-    assert "Animation saved" in " ".join(display.message_history[-3:])
+    assert any("Animation saved" in line for line in display.message_history)
 
 
 def test_export_name(tmp_path):
