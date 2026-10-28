@@ -1001,9 +1001,11 @@ class ChessDisplay:
         elif size < 40:
             self.canvas.image(self._picture(prefix + "S", size), (x, y))
         else:
-            main = 0.62 * size
+            # The drawing fills the top 82% of its box, so it can be almost as
+            # big as other pieces while leaving room for the row of natures
+            main = 0.9 * size
             picture = self._picture(prefix + "S", main)
-            self.canvas.image(picture, (x + (size - main) / 2, y + 0.04 * size))
+            self.canvas.image(picture, (x + (size - main) / 2, y - 0.04 * size))
             small = size / 5
             left = x + (size - small * len(natures)) / 2
             for i, nature in enumerate(natures):
