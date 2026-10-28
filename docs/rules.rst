@@ -28,9 +28,9 @@ This implementation departs from the original rules in a few ways:
 - Castling and en passant are not allowed.
 - Each player must have one bishop on light squares and one bishop on dark squares, whereas the original scramble chess arrangements allow two bishops of the same square color.
 - A promoted pawn becomes a new piece of undetermined nature (anything but a king), which is constrained by its subsequent moves only. In particular, promoting does not consume the "budget" of queens, rooks, bishops and knights.
-- The original rules end the game when every compatible game of scramble chess has ended.
-  Here, the game is over when the current player has no legal move, and :meth:`~schroedingerchess.chess.ChessBoard.end_game`
-  reports whether this is a checkmate, a stalemate or still ambiguous.
+- The game ends when the player to move has no legal move, which is equivalent to the original end condition (see :doc:`theory`).
+  However, the original rules do not say who wins when some compatible arrangements give a checkmate and others a stalemate:
+  :meth:`~schroedingerchess.chess.ChessBoard.end_game` then reports an unclear result.
 
 How legality is checked
 -----------------------

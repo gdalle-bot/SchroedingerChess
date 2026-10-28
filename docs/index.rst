@@ -27,4 +27,5 @@ To host an online game, start the server with ``uv run schroedingerchess-server`
    tutorial
    formulation
    benchmark
+   theory
    api
