@@ -156,3 +156,23 @@ def test_online_move_message(display):
     engine.handleMove((4, 1, 4, 3))
     assert display.message_history[-1] == "White: e2-e4"
     assert engine.turn == 1
+
+
+@pytest.mark.parametrize(("highdpi", "scale"), [("1", None), ("0", "2"), ("1", "2")])
+def test_high_resolution(monkeypatch, highdpi, scale):
+    # The renderer path is used on macOS, the scale is 2 on Retina screens
+    monkeypatch.setenv("SCHROEDINGERCHESS_HIGHDPI", highdpi)
+    if scale is not None:
+        monkeypatch.setenv("SCHROEDINGERCHESS_SCALE", scale)
+    engine = GameEngine()
+    engine.lightBoard = LightBoard()
+    engine.loopingCall = FakeLoopingCall()
+    engine.display = display = ChessDisplay(engine)
+    factor = float(scale or 1)
+    assert display.screen.get_size() == (980 * factor, 640 * factor)
+    # Layout and mouse positions stay in points
+    click(display, display._menu_buttons()["local"].rect.center)
+    assert display.state == "PLAYING"
+    assert display._picture("wS", 80).get_size() == (80 * factor, 80 * factor)
+    display.showError("Something went wrong")
+    display.render()
