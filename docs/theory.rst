@@ -113,6 +113,12 @@ In particular, the player to move can never win, and the uncertainty is always b
 There is a legal game of Haft Schrödinger chess that ends (the player to move has no legal move)
 with a checkmate under some compatible arrangements and a stalemate under others.
 
+.. figure:: _static/undetermined.gif
+   :alt: Animation of a game ending with black unable to move, checkmated if the piece on f8 is the queen and stalemated if it is a bishop
+   :width: 480
+
+   The game of Theorem 8. Pieces whose nature is still unknown are drawn as a question mark, above icons of their possible natures.
+
 *Proof.* The following game was found with a computer search, and is checked here with both solvers.
 In the first 33 half-moves, white captures every black piece except the one on a8, which is therefore the black king (Proposition 5),
 while the white pieces from c1 and f1 never move.
