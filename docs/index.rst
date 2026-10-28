@@ -21,4 +21,6 @@ To host an online game, start the server with ``uv run schroedingerchess-server`
    :caption: Contents
 
    rules
+   tutorial
+   formulation
    api

@@ -45,4 +45,5 @@ docs = [
 select = ["E", "F", "W", "I", "UP"]
 
 [tool.pytest]
-testpaths = ["tests"]
+testpaths = ["tests", "docs"]
+addopts = ["--doctest-glob=*.rst"]
