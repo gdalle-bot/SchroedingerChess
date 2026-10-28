@@ -5,6 +5,9 @@ Implementation of Haft Schrödinger chess, where chess pieces decide what they w
 
 The nature of the major pieces is unknown at first, and is determined by the moves they make.
 
+.. image:: _static/screenshot.png
+   :alt: Screenshot of a game in progress
+
 Installation
 ------------
 
