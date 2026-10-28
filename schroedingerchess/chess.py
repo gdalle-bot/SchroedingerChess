@@ -5,7 +5,7 @@ import itertools
 import numpy as np
 import pulp
 
-from . import sunfish
+from . import engine
 
 colors = list(range(2))
 piece_numbers = list(range(16))
@@ -695,47 +695,50 @@ class ChessBoard:
     def all_legal_moves(self):
         return sorted(list(self.all_legal_moves_gen()))
 
-    def sunfish_move_suggestion(self, secs):
-        board = "         \n         \n"
-        for y in reversed(range(8)):
-            board += " "
-            for x in range(8):
-                if self.grid[x][y] is None:
-                    board += "."
-                elif self.grid[x][y].color_name == "W":
-                    board += self.grid[x][y].nature_guess
-                else:
-                    board += self.grid[x][y].nature_guess.lower()
-            board += "\n"
-        board += "         \n         \n"
-        pos = sunfish.Position(board, 0, (False, False), (False, False), 0, 0)
-        if self.time % 2 == 1:
-            pos = pos.rotate()
+    def guessed_board(self):
+        """Board where each piece has its guessed nature.
 
-        searcher = sunfish.Searcher()
-        move, score = searcher.search(pos, secs=secs)
-        if move is None:
-            raise IllegalMove("Sunfish didn't find a feasible move")
-        if self.time % 2 == 1:
-            move = (119 - move[0], 119 - move[1])
-        first_square, last_square = sunfish.render(move[0]), sunfish.render(move[1])
-        x1, y1, x2, y2 = self.translate_move((first_square, last_square))
-        return x1, y1, x2, y2
+        :return: Dictionary mapping squares ``(x, y)`` to ``(color, nature)``.
+        """
+        return {
+            (x, y): (piece.color, piece.nature_guess)
+            for x in range(8)
+            for y in range(8)
+            if (piece := self.grid[x][y]) is not None
+        }
 
-    def auto_move(self, intelligent=True, secs=1):
-        """Perform one of the legal moves at random."""
+    def engine_move_suggestions(self, depth=2):
+        """Rank the moves of the current player with the alpha-beta engine.
+
+        The ranking is computed on :meth:`guessed_board`, so the moves are not
+        necessarily legal.
+
+        :param depth: Search depth in plies.
+        :return: List of moves ``(x1, y1, x2, y2)``, best first.
+        """
+        return engine.rank_moves(self.guessed_board(), self.time % 2, depth=depth)
+
+    def auto_move(self, intelligent=True, depth=2):
+        """Choose a legal move for the current player, without playing it.
+
+        :param intelligent: If True, try the engine suggestions from best to
+            worst. Otherwise (or if none of them is legal), pick a legal move at
+            random.
+        :param depth: Search depth of the engine, in plies.
+        :raise IllegalMove: If the game is over.
+        :return: Move ``(x1, y1, x2, y2)``.
+        """
         if intelligent:
-            try:
-                x1, y1, x2, y2 = self.sunfish_move_suggestion(secs=secs)
-                self.test_move(x1, y1, x2, y2)
-            except IllegalMove:
-                self.auto_move(intelligent=False)
-        else:
-            try:
-                x1, y1, x2, y2 = self.all_legal_moves_gen().__next__()
-            except StopIteration:
-                raise IllegalMove("Game over - " + self.end_game())
-        return x1, y1, x2, y2
+            for x1, y1, x2, y2 in self.engine_move_suggestions(depth=depth):
+                try:
+                    self.test_move(x1, y1, x2, y2)
+                    return x1, y1, x2, y2
+                except IllegalMove:
+                    pass
+        try:
+            return tuple(int(v) for v in next(self.all_legal_moves_gen()))
+        except StopIteration:
+            raise IllegalMove("Game over - " + self.end_game()) from None
 
     def is_legal_nature(self, piece, n):
         """Check if, given the current history, piece could have nature n."""
