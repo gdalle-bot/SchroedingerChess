@@ -101,3 +101,14 @@ def test_count_matches_explanation():
     piece.forbidden_natures = []
     # The knight is determined, and the other 7 pieces of white are free
     assert cb.count_explanations() == (5040 * 2 // 8) * 5040
+
+
+def test_possible_natures_at_once():
+    rng = random.Random(5)
+    np.random.seed(5)
+    cb = ChessBoard()
+    for _ in range(14):
+        cb.move(*rng.choice(cb.all_legal_moves()), disp=False)
+        at_once = cb.all_possible_natures()
+        for (c, i), natures in at_once.items():
+            assert natures == cb.all_legal_natures(cb.pieces[c][i], update=False)

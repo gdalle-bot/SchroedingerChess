@@ -11,6 +11,11 @@ Consistency checks by enumeration
 
 .. automodule:: schroedingerchess.enumeration
 
+Export
+------
+
+.. automodule:: schroedingerchess.export
+
 Computer player
 ---------------
 

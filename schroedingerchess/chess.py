@@ -861,6 +861,31 @@ class ChessBoard:
             piece.possible_natures = legal_natures[:]
         return legal_natures
 
+    def all_possible_natures(self):
+        """Possible natures of every piece on the board, computed at once.
+
+        :return: Dictionary mapping ``(color, number)`` to the list returned by
+            :meth:`all_legal_natures` (without updating the pieces), for every
+            piece currently on the board.
+        """
+        on_board = [p for color in self.pieces for p in color if p.position]
+        if self.solver == "enumeration":
+            try:
+                natures = enumeration.possible_natures(self)
+            except enumeration.TooManyConfigurations:
+                natures = None
+            if natures is not None:
+                return {
+                    (p.color, p.number): ["P"]
+                    if "P" in p.possible_natures
+                    else natures.get((p.color, p.number), [])
+                    for p in on_board
+                }
+        return {
+            (p.color, p.number): self.all_legal_natures(p, update=False)
+            for p in on_board
+        }
+
     def end_game(self):
         """Describe the outcome: ongoing, checkmate, stalemate, unclear or draw."""
         if self.is_fifty_move_draw():

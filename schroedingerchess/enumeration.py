@@ -221,3 +221,31 @@ def explanation(cb, check=None):
         for j, i in enumerate(pieces[c]):
             solution[(c, i)] = NATURES[config[j]]
     return solution
+
+
+def possible_natures(cb):
+    """Possible natures of every major and promoted piece in play, at once.
+
+    This is equivalent to calling
+    :meth:`~schroedingerchess.chess.ChessBoard.all_legal_natures` on every
+    piece, but only enumerates the arrangements once.
+
+    :return: Dictionary mapping ``(color, number)`` to a list of natures, in
+        the order ``K, Q, R, B, N`` (empty if the history is inconsistent).
+    :raise TooManyConfigurations: If there are too many promoted pieces.
+    """
+    tables = _tables(cb, None)
+    if tables is None:
+        return {}
+    configs, pieces, ok, kings = tables
+    possible = _king_tables(ok, kings, lambda block: block.any(axis=0))
+    natures = {}
+    for c in (0, 1):
+        # Configurations of c that some configuration of 1 - c is compatible
+        # with: allowed enemy kings whose own configuration allows our king
+        other = possible[1 - c].astype(bool)  # [k_enemy, k_own]
+        feasible = (ok[c] & other[:, kings[c]].T).any(axis=1)
+        for j, i in enumerate(pieces[c]):
+            values = set(configs[c][feasible, j].tolist())
+            natures[(c, i)] = [NATURES[n] for n in range(5) if n in values]
+    return natures

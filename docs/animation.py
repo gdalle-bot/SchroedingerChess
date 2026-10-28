@@ -1,8 +1,7 @@
 """Render the game of the theory page that ends with an undetermined result.
 
-Run ``uv run --group docs python docs/animation.py`` to create
-``docs/_static/undetermined.gif``, which is committed since rendering takes
-a minute.
+Run ``uv run python docs/animation.py`` to create ``docs/_static/undetermined.gif``,
+which is committed so that building the docs does not depend on it.
 """
 
 import os
@@ -13,11 +12,9 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 os.environ["SCHROEDINGERCHESS_HIGHDPI"] = "0"
 
-import pygame  # noqa: E402
-from PIL import Image  # noqa: E402
-
-from schroedingerchess.chess import ChessBoard, LightBoard, square_name  # noqa: E402
-from schroedingerchess.display import BOARD, MUTED, TEXT, ChessDisplay  # noqa: E402
+from schroedingerchess import export  # noqa: E402
+from schroedingerchess.chess import LightBoard  # noqa: E402
+from schroedingerchess.display import ChessDisplay  # noqa: E402
 from schroedingerchess.game_engines import GameEngine  # noqa: E402
 
 GAME = (
@@ -27,92 +24,46 @@ GAME = (
     "b2b4 b8a8 b4b5 a8b8 b5b6 b8a8 c2c4 a8b8 c4c5 b8a8 c1b2 a8b8 "
     "b2g7 b8a8 c5c6 a8b8 c6c7 b8a8 g7f8"
 ).split()
-
-CAPTION = 70  # height of the caption below the board, in points
-SIZE = 480  # width of the animation, in pixels
+MOVES = [export.parse_move(move) for move in GAME]
 
 
-def light_board(cb):
-    """Light board with the possible natures of every piece, as in the game."""
-    lb = LightBoard()
-    for c in (0, 1):
-        for i, piece in enumerate(cb.pieces[c]):
-            natures = cb.all_legal_natures(piece, update=False)
-            lb.setPiece(i + 24 * c, piece.color, piece.position, natures)
-    return lb
-
-
-def frame(display, cb, caption, subcaption):
-    """Draw the board and a caption, and return them as an image."""
-    display._draw_board(light_board(cb))
-    surface = pygame.Surface((BOARD, BOARD + CAPTION))
-    surface.fill((32, 34, 39))
-    surface.blit(display.screen, (0, 0), (0, 0, BOARD, BOARD))
-    for text, font, color, y in [
-        (caption, display.font_bold, TEXT, BOARD + 12),
-        (subcaption, display.small_font, MUTED, BOARD + 40),
-    ]:
-        rendered = font.render(text, color)
-        surface.blit(rendered, rendered.get_rect(midtop=(BOARD // 2, y)))
-    image = Image.frombytes(
-        "RGB", surface.get_size(), pygame.image.tobytes(surface, "RGB")
-    )
-    height = round(SIZE * surface.get_height() / surface.get_width())
-    return image.resize((SIZE, height), Image.LANCZOS)
-
-
-def make_animation(path):
-    """Render the game into an animated GIF at ``path``."""
-    engine = GameEngine()
-    engine.lightBoard = LightBoard()
-    display = ChessDisplay(engine)
-    display.state = "PLAYING"
-    cb = ChessBoard()
-    frames = [frame(display, cb, "An undetermined ending", "Starting position")]
-    durations = [1500]
-    for t, move in enumerate(GAME):
-        x1, y1, x2, y2 = cb.translate_move((move[:2], move[2:]))
-        cb.move(x1, y1, x2, y2, disp=False)
-        display.setLastMove(x1, y1, x2, y2)
-        player = "White" if t % 2 == 0 else "Black"
-        caption = f"{t // 2 + 1}. {player}: {square_name(x1, y1)}-{square_name(x2, y2)}"
-        if t < 33:
-            subcaption = "White captures every black piece but the one on a8"
-        elif t < len(GAME) - 1:
-            subcaption = "The piece from c1 only moves diagonally: queen or bishop?"
-        else:
-            subcaption = "Black cannot move: checkmate or stalemate?"
-        frames.append(frame(display, cb, caption, subcaption))
-        durations.append(350 if t < 33 else 700)
+def caption(t, cb):
+    """Title and explanation of the frame after ``t`` half-moves."""
+    if t == 0:
+        return "An undetermined ending", "Starting position"
+    player = "White" if t % 2 == 1 else "Black"
+    title = f"{(t + 1) // 2}. {player}: {GAME[t - 1]}"
+    if t <= 33:
+        return title, "White captures every black piece but the one on a8"
+    if t < len(GAME):
+        return title, "The piece from c1 only moves diagonally: queen or bishop?"
     shares = cb.outcome_shares()
-    frames.append(
-        frame(
-            display,
-            cb,
-            f"Checkmate in {100 * shares['checkmate']:.0f}% of the arrangements",
-            f"(the piece on f8 is the queen), stalemate in "
-            f"{100 * shares['stalemate']:.0f}% (it is a bishop)",
-        )
+    return (
+        f"Checkmate in {100 * shares['checkmate']:.0f}% of the arrangements",
+        f"(the piece on f8 is the queen), stalemate in "
+        f"{100 * shares['stalemate']:.0f}% (it is a bishop)",
     )
-    durations[-1] = 1500
-    durations.append(5000)
-    frames = [f.quantize(colors=128, method=Image.Quantize.MEDIANCUT) for f in frames]
-    frames[0].save(
-        path,
-        save_all=True,
-        append_images=frames[1:],
-        duration=durations,
-        loop=0,
-        optimize=True,
-    )
-    pygame.quit()
+
+
+def duration(t):
+    """Duration of the frame after ``t`` half-moves, in milliseconds."""
+    if t == 0:
+        return 1500
+    if t == len(GAME):
+        return 6000
+    return 350 if t <= 33 else 800
 
 
 if __name__ == "__main__":
     out = (
         sys.argv[1]
         if len(sys.argv) > 1
-        else os.path.join(os.path.dirname(__file__), "_static", "undetermined.gif")
+        else os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "_static", "undetermined.gif"
+        )
     )
-    make_animation(out)
+    engine = GameEngine()
+    engine.lightBoard = LightBoard()
+    display = ChessDisplay(engine)
+    export.export_gif(MOVES, out, display, captions=caption, durations=duration)
     print(out, os.path.getsize(out) // 1024, "KiB")
