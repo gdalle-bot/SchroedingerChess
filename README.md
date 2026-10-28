@@ -5,6 +5,8 @@
 
 An implementation of [Haft Schrödinger chess](http://antumbrastation.com/schroedinger-chess/2017/11/28/introduction-to-haft-schroedinger-chess.html), a chess variant where pieces decide what they want to be.
 
+![Screenshot of a game in progress](docs/_static/screenshot.png)
+
 ## Rules in a nutshell
 
 At the start, the eight back-rank pieces of each player have no fixed type.

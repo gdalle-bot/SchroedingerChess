@@ -16,3 +16,4 @@ autodoc_default_options = {"members": True, "show-inheritance": True}
 html_theme = "furo"
 html_title = "Schrödinger Chess"
 exclude_patterns = ["_build"]
+html_static_path = ["_static"]

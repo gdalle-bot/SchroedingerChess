@@ -10,8 +10,13 @@ from .chess import ChessBoard, IllegalMove, LightBoard
 from .client import ChessClientProtocol
 from .display import ChessDisplay
 
-FRAME_PER_SECOND = 10
+FRAME_PER_SECOND = 30
 CONNECTION_WAITING_TIME = 10  # seconds
+
+
+def square_name(x, y):
+    """Name of the square ``(x, y)`` in algebraic notation, like ``"e4"``."""
+    return "abcdefgh"[x] + str(y + 1)
 
 
 class GameEngine:
@@ -102,7 +107,7 @@ class TwoPlayersOnOneBoard(GameEngine):
         :param gameEngine: The initial game engine.
         """
         self.chessBoard = ChessBoard()
-        self.lightBoard = gameEngine.lightBoard
+        self.lightBoard = LightBoard()
         self.display = gameEngine.display
         self.loopingCall = gameEngine.loopingCall
         self.validMovesCounter = 0
@@ -137,8 +142,10 @@ class TwoPlayersOnOneBoard(GameEngine):
         try:
             self.chessBoard.move(x1, y1, x2, y2, disp=False)
             self.lightBoard.move(x1, y1, x2, y2)
-            color = "Whites" if (self.validMovesCounter % 2 == 0) else "Blacks"
-            self.display.addMessage(color + f" move from ({x1},{y1}) to ({x2},{y2})")
+            color = "White" if (self.validMovesCounter % 2 == 0) else "Black"
+            self.display.addMessage(
+                f"{color}: {square_name(x1, y1)}-{square_name(x2, y2)}"
+            )
             self.validMovesCounter += 1
             self.display.setLastMove(x1, y1, x2, y2)
             self.makeDisplayDrawBoard()
@@ -240,8 +247,8 @@ class OnePlayerOnNetwork(GameEngine):
         self.turn = (self.turn + 1) % 2
         x1, y1, x2, y2 = description
         self.lightBoard.move(x1, y1, x2, y2)
-        color = "Whites" if (self.turn == 0) else "Blacks"
-        self.display.addMessage(color + f" move from ({x1},{y1}) to ({x2},{y2})")
+        color = "White" if (self.turn == 0) else "Black"
+        self.display.addMessage(f"{color}: {square_name(x1, y1)}-{square_name(x2, y2)}")
         self.display.setLastMove(x1, y1, x2, y2)
         self.makeDisplayDrawBoard()
         # print("cb.move({},{},{},{})".format(x1, y1, x2, y2))
