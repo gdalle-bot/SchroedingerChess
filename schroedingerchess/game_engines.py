@@ -6,17 +6,12 @@ from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 from twisted.internet.task import LoopingCall
 from twisted.python import log
 
-from .chess import ChessBoard, IllegalMove, LightBoard
+from .chess import ChessBoard, IllegalMove, LightBoard, square_name
 from .client import ChessClientProtocol
 from .display import ChessDisplay
 
 FRAME_PER_SECOND = 30
 CONNECTION_WAITING_TIME = 10  # seconds
-
-
-def square_name(x, y):
-    """Name of the square ``(x, y)`` in algebraic notation, like ``"e4"``."""
-    return "abcdefgh"[x] + str(y + 1)
 
 
 class GameEngine:
@@ -142,13 +137,14 @@ class TwoPlayersOnOneBoard(GameEngine):
         try:
             self.chessBoard.move(x1, y1, x2, y2, disp=False)
             self.lightBoard.move(x1, y1, x2, y2)
+            # Update everything before the message triggers a redraw
+            self.display.setLastMove(x1, y1, x2, y2)
+            self.display.lightBoard = self.lightBoard
             color = "White" if (self.validMovesCounter % 2 == 0) else "Black"
             self.display.addMessage(
                 f"{color}: {square_name(x1, y1)}-{square_name(x2, y2)}"
             )
             self.validMovesCounter += 1
-            self.display.setLastMove(x1, y1, x2, y2)
-            self.makeDisplayDrawBoard()
             self.updateLightBoard()
         except IllegalMove as e:
             self.handleIllegalMove(str(e))
@@ -217,7 +213,9 @@ class OnePlayerOnNetwork(GameEngine):
     def moveTask(self, x1, y1, x2, y2):
         """Send a move to the server."""
         if self.turn != self.color:
-            self.display.addMessage("Trying to move out of turn")
+            self.handleIllegalMove(
+                "It is not your turn: wait for your opponent to move"
+            )
         else:
             msg = {"type": "move", "color": self.color, "description": (x1, y1, x2, y2)}
             self.protocol.sendMessage(msg)
@@ -229,7 +227,9 @@ class OnePlayerOnNetwork(GameEngine):
     def autoMoveTask(self):
         """Ask the server to choose a move."""
         if self.turn != self.color:
-            self.display.addMessage("Trying to move out of turn")
+            self.handleIllegalMove(
+                "It is not your turn: wait for your opponent to move"
+            )
         else:
             msg = {"type": "automove", "color": self.color}
             self.protocol.sendMessage(msg)
@@ -244,13 +244,13 @@ class OnePlayerOnNetwork(GameEngine):
 
     def handleMove(self, description):
         """Executes a move received from the server"""
+        color = "White" if (self.turn == 0) else "Black"  # player who moved
         self.turn = (self.turn + 1) % 2
         x1, y1, x2, y2 = description
         self.lightBoard.move(x1, y1, x2, y2)
-        color = "White" if (self.turn == 0) else "Black"
-        self.display.addMessage(f"{color}: {square_name(x1, y1)}-{square_name(x2, y2)}")
         self.display.setLastMove(x1, y1, x2, y2)
-        self.makeDisplayDrawBoard()
+        self.display.lightBoard = self.lightBoard
+        self.display.addMessage(f"{color}: {square_name(x1, y1)}-{square_name(x2, y2)}")
         # print("cb.move({},{},{},{})".format(x1, y1, x2, y2))
 
     def handleUpdateBoard(self, description):

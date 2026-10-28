@@ -119,3 +119,40 @@ def test_check_address_format(display, address, valid):
 def test_square_name():
     assert square_name(0, 0) == "a1"
     assert square_name(4, 3) == "e4"
+
+
+def test_illegal_move_banner(display):
+    click(display, display._menu_buttons()["local"].rect.center)
+    engine = display.gameEngine
+    # Black tries to move first: e7, then e5
+    click(display, (4 * 80 + 40, 1 * 80 + 40))
+    click(display, (4 * 80 + 40, 3 * 80 + 40))
+    assert display.attempted_move == (4, 6, 4, 4)
+    engine.moveTask(display.attempted_move)  # what the reactor would run
+    assert "out of turn" in display.error
+    assert display._error_alpha() > 0
+    assert len(display.message_history) - 1 in display.error_lines
+    display.render()
+    # A legal move clears the banner
+    engine.moveTask((4, 1, 4, 3))
+    assert display.error is None and display.attempted_move is None
+
+
+def test_menu_error_banner(display):
+    click(display, display._menu_buttons()["online"].rect.center)
+    display.address.text = "nowhere"
+    click(display, display._menu_buttons()["connect"].rect.center)
+    assert display.state == "MENU"
+    assert "valid address" in display.error
+
+
+def test_online_move_message(display):
+    # Regression: the move of white was announced as a move of black
+    from schroedingerchess.game_engines import OnePlayerOnNetwork
+
+    engine = OnePlayerOnNetwork.__new__(OnePlayerOnNetwork)
+    engine.display, engine.lightBoard, engine.turn = display, LightBoard(), 0
+    display.gameEngine = engine
+    engine.handleMove((4, 1, 4, 3))
+    assert display.message_history[-1] == "White: e2-e4"
+    assert engine.turn == 1

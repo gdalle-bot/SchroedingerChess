@@ -1,6 +1,7 @@
 """Graphical interface of the game, drawn with pygame."""
 
 import os
+import time
 
 import pygame
 
@@ -31,6 +32,9 @@ DARK_SQUARE = (140, 162, 173)
 LAST_MOVE = (246, 224, 94, 120)
 SELECTION = (96, 156, 230, 130)
 CHECK = (232, 70, 60, 150)
+ERROR = (214, 64, 58)
+ERROR_SQUARE = (232, 70, 60, 110)
+ERROR_DURATION = 3.0  # seconds during which an error stays on screen
 
 
 def _font(size, bold=False):
@@ -176,6 +180,10 @@ class ChessDisplay:
         self.message_history = []
         self.current_first_message = 0
         self.pressed = None  # Name of the button being pressed
+        self.error = None  # Last error, shown in a banner over the board
+        self.error_time = 0.0
+        self.error_lines = set()  # Indices of the error lines in the log
+        self.attempted_move = None  # Move being checked, flashed if illegal
 
         card = self._menu_card()
         field_w = card.width - 2 * PADDING
@@ -249,15 +257,27 @@ class ChessDisplay:
         self.gameEngine.makeDisplayDrawBoard()
 
     def handleIllegalMove(self, reason):
-        """Show why a move is illegal.
+        """Show prominently why a move is illegal.
+
+        The reason appears in a red banner over the board for a few seconds,
+        the squares of the attempted move are highlighted in red, and the
+        reason is logged in red.
 
         :param reason: Reason of the illegal move.
         """
-        self.addMessage(reason)
+        self.showError(reason)
+
+    def showError(self, message):
+        """Show an error in a red banner over the board, and in the log."""
+        self.error = message
+        self.error_time = time.monotonic()
+        self.addMessage(message, error=True)
 
     def setLastMove(self, x1, y1, x2, y2):
         """Remember the last move, to highlight it."""
         self.last_move = (x1, y1, x2, y2)
+        self.error = None
+        self.attempted_move = None
 
     def flipDisplay(self, newState):
         """Set the display orientation.
@@ -275,13 +295,18 @@ class ChessDisplay:
         """
         return y if self.flip else 7 - y
 
-    def addMessage(self, message):
+    def addMessage(self, message, error=False):
         """Add a message to the log, and scroll to the end.
 
         :param message: A string message.
+        :param error: Whether to show the message in red.
         """
         width = self._log_rect().width - 2 * 12
-        self.message_history.extend(_wrap(message, self.small_font, width))
+        lines = _wrap(message, self.small_font, width)
+        if error:
+            start = len(self.message_history)
+            self.error_lines.update(range(start, start + len(lines)))
+        self.message_history.extend(lines)
         self.current_first_message = max(
             0, len(self.message_history) - self._max_messages()
         )
@@ -345,9 +370,9 @@ class ChessDisplay:
             self.selected_color = "B"
         elif clicked == "connect":
             if not self.check_address_format(self.address.text):
-                self.addMessage('Please enter a valid address, like "127.0.0.1:6000"')
+                self.showError('Please enter a valid address, like "127.0.0.1:6000"')
             elif len(self.name.text) == 0:
-                self.addMessage("Please enter a player name")
+                self.showError("Please enter a player name")
             else:
                 color = 0 if self.selected_color == "W" else 1
                 self.setOnePlayerOnNetworkMode(self.name.text, self.address.text, color)
@@ -369,6 +394,7 @@ class ChessDisplay:
             x1, y1 = self.selectedBox[0], self.flipY(self.selectedBox[1])
             x2, y2 = box[0], self.flipY(box[1])
             self.selectedBox = None
+            self.attempted_move = (x1, y1, x2, y2)
             self.gameEngine.move(x1, y1, x2, y2)
 
     def updatePane(self, events=()):
@@ -442,7 +468,47 @@ class ChessDisplay:
         else:
             self.drawMenu()
         self.drawPane()
+        self._draw_error()
         pygame.display.flip()
+
+    def _error_alpha(self):
+        """Opacity of the error banner, which fades out at the end."""
+        if self.error is None:
+            return 0
+        age = time.monotonic() - self.error_time
+        if age > ERROR_DURATION:
+            self.error = None
+            self.attempted_move = None
+            return 0
+        return min(1.0, 2 * (ERROR_DURATION - age))
+
+    def _draw_error(self):
+        alpha = self._error_alpha()
+        if alpha == 0:
+            return
+        if self.state == "PLAYING" and self.attempted_move is not None:
+            x1, y1, x2, y2 = self.attempted_move
+            r, g, b, a = ERROR_SQUARE
+            for x, y in [(x1, y1), (x2, y2)]:
+                self._overlay(self._square_rect(x, y), (r, g, b, int(a * alpha)))
+        lines = _wrap(self.error, self.font_bold, BOARD - 6 * PADDING)
+        height = 2 * PADDING + len(lines) * self.font_bold.get_linesize()
+        banner = pygame.Rect(
+            2 * PADDING, BOARD - 2 * PADDING - height, BOARD - 4 * PADDING, height
+        )
+        surface = pygame.Surface(banner.size, pygame.SRCALPHA)
+        pygame.draw.rect(
+            surface,
+            (*ERROR, int(240 * alpha)),
+            surface.get_rect(),
+            border_radius=RADIUS,
+        )
+        for i, line in enumerate(lines):
+            text = self.font_bold.render(line, True, (255, 255, 255))
+            text.set_alpha(int(255 * alpha))
+            y = PADDING + i * self.font_bold.get_linesize()
+            surface.blit(text, text.get_rect(midtop=(banner.width // 2, y)))
+        self.screen.blit(surface, banner.topleft)
 
     def _overlay(self, rect, color):
         surface = pygame.Surface(rect.size, pygame.SRCALPHA)
@@ -572,7 +638,11 @@ class ChessDisplay:
         line_height = self.small_font.get_linesize()
         for i, message in enumerate(visible):
             latest = first + i == len(self.message_history) - 1
-            text = self.small_font.render(message, True, TEXT if latest else MUTED)
+            if first + i in self.error_lines:
+                color = ERROR
+            else:
+                color = TEXT if latest else MUTED
+            text = self.small_font.render(message, True, color)
             self.screen.blit(text, (log.x + 12, log.y + 8 + i * line_height))
 
         # Captured pieces

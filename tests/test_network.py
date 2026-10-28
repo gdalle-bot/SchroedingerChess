@@ -28,19 +28,20 @@ def test_lightboard_move_and_capture():
     assert lb.getDeadPieces(1) == [{"position": False, "color": 1, "natures": ["P"]}]
 
 
-def test_lightboard_move_marks_unknown_pieces():
+def test_lightboard_move_keeps_other_natures():
+    # Regression: other pieces used to be marked as pending ("E") until the
+    # solver updated them, which made the display flicker after each move
     lb = LightBoard()
     lb.move(1, 0, 2, 2)
-    # Other undetermined pieces wait for the server ("E"), including those
-    # sharing a row or column with the target square
-    assert lb.getPiece(2, 0)["natures"] == "E"
-    assert lb.getPiece(2, 7)["natures"] == "E"
+    assert lb.getPiece(2, 0)["natures"] == major_piece_natures
+    assert lb.getPiece(2, 7)["natures"] == major_piece_natures
     assert lb.getPiece(0, 1)["natures"] == ["P"]
 
 
 @pytest.mark.parametrize(("color", "y1", "y2"), [(0, 6, 7), (1, 1, 0)])
 def test_lightboard_promotion(color, y1, y2):
-    assert LightBoard.possibleNaturesFromMove(0, y1, 0, y2, color, ["P"]) == ["E"]
+    natures = LightBoard.possibleNaturesFromMove(0, y1, 0, y2, color, ["P"])
+    assert natures == ["Q", "R", "B", "N"]
 
 
 def test_lightboard_no_promotion_backwards():

@@ -45,12 +45,12 @@ True
 >>> cb.all_legal_natures(cb.grid[2][2])
 ['N']
 
-Illegal moves raise an :class:`~schroedingerchess.chess.IllegalMove` exception explaining why:
+Illegal moves raise an :class:`~schroedingerchess.chess.IllegalMove` exception explaining why, and leave the board unchanged:
 
 >>> cb.move(2, 2, 2, 4, disp=False)
 Traceback (most recent call last):
 ...
-schroedingerchess.chess.IllegalMove: Trying to move out of turn
+schroedingerchess.chess.IllegalMove: It is Black's turn, but the piece on c3 is White: you cannot move out of turn
 
 Entanglement between pieces
 ---------------------------
@@ -70,7 +70,7 @@ The piece on h1 cannot jump to g3 anymore:
 >>> cb.move(7, 0, 6, 2, disp=False)
 Traceback (most recent call last):
 ...
-schroedingerchess.chess.IllegalMove: Trying to perform a move that is illegal for any initial piece configuration
+schroedingerchess.chess.IllegalMove: Moving from h1 to g3 is illegal for any initial piece configuration: it would contradict the previous moves, or leave the king in check
 
 Entanglement between players
 ----------------------------
