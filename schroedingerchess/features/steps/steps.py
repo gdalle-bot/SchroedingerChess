@@ -1,5 +1,5 @@
 from behave import *
-from chess import *
+from schroedingerchess.chess import *
 
 @given("I have a standard Schroedinger ChessBoard")
 def standard_chessboard(context):
