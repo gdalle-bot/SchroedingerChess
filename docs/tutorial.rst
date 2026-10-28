@@ -102,6 +102,21 @@ True
 >>> "K" in cb.all_legal_natures(cb.grid[4][7])
 False
 
+Saving a game
+-------------
+
+:mod:`schroedingerchess.export` writes games as text records in the PGN format, with moves in long algebraic notation, and reads them back:
+
+>>> from schroedingerchess import export
+>>> record = export.game_record(cb.moves)
+>>> print(record.splitlines()[-1])
+1. e2e3 d7d6 2. f1b5 a7a6 *
+>>> export.read_game_record(record) == cb.moves
+True
+
+It can also render a game as an animated GIF, with :func:`~schroedingerchess.export.export_gif`.
+In the graphical interface, the "Save as text" and "Save as GIF" buttons save the current game in your Downloads folder.
+
 Playing against the computer
 ----------------------------
 

@@ -308,14 +308,15 @@ class Game:
 
     def updateLightBoardTask(self):
         """Recompute the possible natures of all pieces and send them."""
+        on_board = self.chessBoard.all_possible_natures()
         for col in [0, 1]:
             for i, piece in enumerate(self.chessBoard.pieces[col]):
-                if piece is not None:
-                    color = piece.color
-                    position = piece.position
-                    natures = self.chessBoard.all_legal_natures(piece)
-                    pieceIndex = i + col * 24
-                    self.lightBoard.setPiece(pieceIndex, color, position, natures)
+                natures = on_board.get((col, i))
+                if natures is None:  # captured or not yet promoted
+                    natures = self.chessBoard.all_legal_natures(piece, update=False)
+                self.lightBoard.setPiece(
+                    i + col * 24, piece.color, piece.position, natures
+                )
         msg = {"type": "lightboard", "description": self.lightBoard.wrapUp()}
         self.sendMessageToAll(msg)
 

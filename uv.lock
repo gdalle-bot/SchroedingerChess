@@ -1116,6 +1116,7 @@ source = { editable = "." }
 dependencies = [
     { name = "highspy" },
     { name = "numpy" },
+    { name = "pillow" },
     { name = "pulp" },
     { name = "pygame-ce" },
     { name = "twisted" },
@@ -1129,7 +1130,6 @@ dev = [
 ]
 docs = [
     { name = "furo" },
-    { name = "pillow" },
     { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
     { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
 ]
@@ -1142,6 +1142,7 @@ test = [
 requires-dist = [
     { name = "highspy", specifier = ">=1.15" },
     { name = "numpy", specifier = ">=2.3" },
+    { name = "pillow", specifier = ">=12" },
     { name = "pulp", specifier = ">=4.2" },
     { name = "pygame-ce", specifier = ">=2.5.8" },
     { name = "twisted", specifier = ">=25.5" },
@@ -1155,7 +1156,6 @@ dev = [
 ]
 docs = [
     { name = "furo", specifier = ">=2025.12.19" },
-    { name = "pillow", specifier = ">=13.0.0" },
     { name = "sphinx", specifier = ">=9.1.1" },
 ]
 test = [

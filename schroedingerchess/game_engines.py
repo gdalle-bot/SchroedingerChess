@@ -1,7 +1,7 @@
 """Game engines, which connect the display to a local or remote chess board."""
 
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.defer import Deferred
 from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 from twisted.internet.task import LoopingCall
 from twisted.python import log
@@ -107,29 +107,23 @@ class TwoPlayersOnOneBoard(GameEngine):
         self.loopingCall = gameEngine.loopingCall
         self.validMovesCounter = 0
 
-    @inlineCallbacks
     def updateLightBoard(self):
-        """Recompute the possible natures of all pieces, one at a time."""
-        nb = self.validMovesCounter
+        """Recompute the possible natures of all pieces and redraw the board."""
+        natures = self.chessBoard.all_possible_natures()
         for col in [0, 1]:
             for i, piece in enumerate(self.chessBoard.pieces[col]):
-                if nb == self.validMovesCounter:
-                    self.updateDeferred = Deferred()
-                    self.updateDeferred.addCallback(self.chessBoard.all_legal_natures)
-                    self.updateDeferred.addErrback(log.err)  # DEBUG
-                    reactor.callLater(0, self.updateDeferred.callback, piece)
-                    natures = yield self.updateDeferred
-                    if nb == self.validMovesCounter:
-                        color = piece.color
-                        position = piece.position
-                        pieceIndex = i + col * 24
-                        self.lightBoard.setPiece(pieceIndex, color, position, natures)
-                        if (piece.position is not None) and (
-                            piece.position is not False
-                        ):
-                            self.makeDisplayDrawBoard()
-                        elif piece.position is False:
-                            self.display.updatePane()
+                if piece.position:
+                    self.lightBoard.setPiece(
+                        i + col * 24, piece.color, piece.position, natures[(col, i)]
+                    )
+                elif piece.position is False:
+                    self.lightBoard.setPiece(
+                        i + col * 24,
+                        piece.color,
+                        False,
+                        self.lightBoard.pieces[i + col * 24]["natures"],
+                    )
+        self.makeDisplayDrawBoard()
 
     def moveTask(self, mov):
         """Play a move on the board and update the display."""

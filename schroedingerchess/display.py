@@ -6,6 +6,7 @@ import time
 
 import pygame
 
+from . import export
 from .chess import FIFTY_MOVE_LIMIT, LightBoard
 
 ASSETS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -286,6 +287,7 @@ class ChessDisplay:
         self.error_time = 0.0
         self.error_lines = set()  # Indices of the error lines in the log
         self.attempted_move = None  # Move being checked, flashed if illegal
+        self.move_history = []  # Moves played in the current game
 
         card = self._menu_card()
         field_w = card.width - 2 * PADDING
@@ -366,6 +368,7 @@ class ChessDisplay:
             self.state = "PLAYING"
             self.mode = "LOCAL"
             self.last_move = (-1, -1, -1, -1)
+            self.move_history = []
             self.flip = False
             self.gameEngine.setTwoPlayersOnOneBoardMode()
             self.gameEngine.makeDisplayDrawBoard()
@@ -377,6 +380,7 @@ class ChessDisplay:
             self.state = "PLAYING"
             self.mode = "ONLINE"
             self.last_move = (-1, -1, -1, -1)
+            self.move_history = []
             self.flip = False
             self.gameEngine.setOnePlayerOnNetworkMode(name, address, color)
             self.gameEngine.makeDisplayDrawBoard()
@@ -429,8 +433,9 @@ class ChessDisplay:
         self.addMessage(message, error=True)
 
     def setLastMove(self, x1, y1, x2, y2):
-        """Remember the last move, to highlight it."""
+        """Remember the last move, to highlight it and to export the game."""
         self.last_move = (x1, y1, x2, y2)
+        self.move_history.append((int(x1), int(y1), int(x2), int(y2)))
         self.error = None
         self.attempted_move = None
 
@@ -569,6 +574,10 @@ class ChessDisplay:
                 self.flipDisplay(not self.flip)
             elif clicked == "menu":
                 self.setMenuMode()
+            elif clicked == "save_text":
+                self.exportText()
+            elif clicked == "save_gif":
+                self.exportGif()
         self.render()
 
     # Layout
@@ -577,7 +586,7 @@ class ChessDisplay:
         return pygame.Rect((BOARD - 400) // 2, (BOARD - 440) // 2, 400, 440)
 
     def _log_rect(self):
-        top = 300 if self.state == "PLAYING" else 90
+        top = 350 if self.state == "PLAYING" else 90
         return pygame.Rect(BOARD + PADDING, top, PANE - 2 * PADDING, BOARD - top - 130)
 
     def _max_messages(self):
@@ -613,7 +622,43 @@ class ChessDisplay:
         }
         if self.mode == "LOCAL":
             buttons["menu"] = Button((x + w + 10, 228, w, 48), "Main menu")
+        buttons["save_text"] = Button((x, 286, w, 48), "Save as text")
+        buttons["save_gif"] = Button((x + w + 10, 286, w, 48), "Save as GIF")
         return buttons
+
+    # Exports
+
+    def _outcome(self):
+        """Outcome of the current game, for local games only."""
+        chessBoard = getattr(self.gameEngine, "chessBoard", None)
+        return None if chessBoard is None else chessBoard.end_game()
+
+    def exportText(self, path=None):
+        """Save the moves of the current game as a text (PGN) file.
+
+        :param path: Path of the file, by default a new file in the Downloads
+            folder (see :func:`~schroedingerchess.export.export_name`).
+        :return: The path of the file.
+        """
+        path = path or export.export_name("pgn")
+        record = export.game_record(self.move_history, outcome=self._outcome())
+        with open(path, "w", encoding="utf-8") as file:
+            file.write(record)
+        self.addMessage(f"Game saved as {path}")
+        return path
+
+    def exportGif(self, path=None):
+        """Save an animation of the current game as a GIF file.
+
+        :param path: Path of the file, by default a new file in the Downloads
+            folder (see :func:`~schroedingerchess.export.export_name`).
+        :return: The path of the file.
+        """
+        path = path or export.export_name("gif")
+        self.addMessage("Rendering the animation...")
+        export.export_gif(self.move_history, path, self)
+        self.addMessage(f"Animation saved as {path}")
+        return path
 
     # Drawing
 
@@ -829,7 +874,7 @@ class ChessDisplay:
             text, color = "Draw by the 50-move rule", WARNING
         else:
             plural = "move" if moves == 1 else "moves"
-            text = f"Draw by the 50-move rule in {moves} {plural}"
+            text = f"50-move rule: draw in {moves} {plural}"
             color = WARNING if moves <= 10 else MUTED
         midleft = (status.x + 16, status.y + 54)
         self.canvas.text(self.small_font, text, color, midleft=midleft)
