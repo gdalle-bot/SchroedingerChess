@@ -31,7 +31,10 @@ schroedingerchess = "schroedingerchess.__main__:main"
 schroedingerchess-server = "schroedingerchess.server:main"
 
 [dependency-groups]
-test = ["behave>=1.3"]
+test = [
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+]
 dev = [{ include-group = "test" }, "ruff>=0.15"]
 
 [tool.ruff]
@@ -40,3 +43,6 @@ extend-exclude = ["schroedingerchess/sunfish.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]
+
+[tool.pytest]
+testpaths = ["tests"]
