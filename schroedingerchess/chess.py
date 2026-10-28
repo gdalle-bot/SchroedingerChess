@@ -874,11 +874,51 @@ class ChessBoard:
         checkmate_possible = self.explanation(check=True) is not None
         stalemate_possible = self.explanation(check=False) is not None
         if checkmate_possible and stalemate_possible:
-            return "Result unclear"
+            shares = self.outcome_shares()
+            if shares is None:
+                return "Result unclear"
+            return (
+                "Result unclear: checkmate in "
+                f"{100 * shares['checkmate']:.0f}% of the compatible arrangements, "
+                f"stalemate in {100 * shares['stalemate']:.0f}%"
+            )
         elif checkmate_possible:
             return "Current player checkmated"
         else:
             return "Stalemate"
+
+    def count_explanations(self, check=None):
+        """Count the arrangements of the pieces that explain the history.
+
+        See :func:`schroedingerchess.enumeration.count_explanations`.
+
+        :return: The number of arrangements, or None if there are too many
+            promoted pieces to enumerate them.
+        """
+        try:
+            return enumeration.count_explanations(self, check=check)
+        except enumeration.TooManyConfigurations:
+            return None
+
+    def outcome_shares(self):
+        """Share of the compatible arrangements giving each outcome.
+
+        When the player to move has no legal move, every arrangement that
+        explains the history ends the game by checkmate (the player to move is
+        in check) or by stalemate. This counts both kinds of arrangements,
+        each arrangement having the same weight. It is a description of the
+        uncertainty, not a probability: nothing in the rules makes all
+        arrangements equally likely.
+
+        :return: Dictionary with the shares of ``"checkmate"`` and
+            ``"stalemate"``, or None if the arrangements cannot be counted.
+        """
+        mates = self.count_explanations(check=True)
+        stalemates = self.count_explanations(check=False)
+        if mates is None or stalemates is None or mates + stalemates == 0:
+            return None
+        total = mates + stalemates
+        return {"checkmate": mates / total, "stalemate": stalemates / total}
 
     def translate_move(self, move):
         """Convert a move between coordinates and algebraic notation.

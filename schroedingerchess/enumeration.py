@@ -131,6 +131,62 @@ def _allowed_kings(cb, c, configs, pieces, check):
     return ok
 
 
+def _tables(cb, check):
+    """Configurations of both players, and the enemy kings each one allows.
+
+    :return: ``(configs, pieces, ok, kings)`` for both colors, or None if a
+        player has no configuration compatible with their own moves.
+    """
+    active = []
+    for c in (0, 1):
+        # Promoted pieces get a position (False once captured) when they appear
+        promoted = [i for i in PROMOTED if cb.pieces[c][i].position is not None]
+        active.append(promoted)
+    configs = [_configurations(cb, c, active[c]) for c in (0, 1)]
+    if any(len(cfg) == 0 for cfg in configs):
+        return None
+    pieces = [MAJOR + active[c] for c in (0, 1)]
+    ok = [_allowed_kings(cb, c, configs[c], pieces[c], check) for c in (0, 1)]
+    kings = [np.argmax(configs[c][:, :8] == 0, axis=1) for c in (0, 1)]
+    return configs, pieces, ok, kings
+
+
+def _king_tables(ok, kings, reduce):
+    """Combine configurations by king: ``table[c][k_own, k_enemy]``."""
+    tables = []
+    for c in (0, 1):
+        table = np.zeros((8, 8), dtype=np.int64)
+        for k in range(8):
+            mask = kings[c] == k
+            if mask.any():
+                table[k] = reduce(ok[c][mask])
+        tables.append(table)
+    return tables
+
+
+def count_explanations(cb, check=None):
+    """Count the arrangements of the pieces in play that explain the history.
+
+    An arrangement assigns a nature to every major piece of both players, and
+    to every promoted piece that has appeared on the board. Both players only
+    interact through the identity of their kings, so the count is
+    :math:`\\sum_{k_0, k_1} N_0(k_0, k_1) \\, N_1(k_1, k_0)`, where
+    :math:`N_c(k, k')` is the number of arrangements of color :math:`c` whose
+    king is piece :math:`k` and which allow the enemy king to be piece :math:`k'`.
+
+    :param cb: A :class:`~schroedingerchess.chess.ChessBoard`.
+    :param check: If True (resp. False), only count the arrangements where the
+        current player is in check (resp. not in check).
+    :raise TooManyConfigurations: If there are too many promoted pieces.
+    """
+    tables = _tables(cb, check)
+    if tables is None:
+        return 0
+    _, _, ok, kings = tables
+    n = _king_tables(ok, kings, lambda block: block.sum(axis=0))
+    return int((n[0] * n[1].T).sum())
+
+
 def explanation(cb, check=None):
     """Find natures of all pieces explaining the history of the board.
 
@@ -144,29 +200,14 @@ def explanation(cb, check=None):
         and promoted pieces in play, or None if there is no explanation.
     :raise TooManyConfigurations: If there are too many promoted pieces.
     """
-    active = []
-    for c in (0, 1):
-        # Promoted pieces get a position (False once captured) when they appear
-        promoted = [i for i in PROMOTED if cb.pieces[c][i].position is not None]
-        active.append(promoted)
-
-    configs = [_configurations(cb, c, active[c]) for c in (0, 1)]
-    if any(len(cfg) == 0 for cfg in configs):
+    tables = _tables(cb, check)
+    if tables is None:
         return None
-    pieces = [MAJOR + active[c] for c in (0, 1)]
-    ok = [_allowed_kings(cb, c, configs[c], pieces[c], check) for c in (0, 1)]
-    kings = [np.argmax(configs[c][:, :8] == 0, axis=1) for c in (0, 1)]
+    configs, pieces, ok, kings = tables
 
     # possible[c][k_own, k_enemy]: some configuration of c has its king on
     # piece k_own and allows the enemy king to be piece k_enemy
-    possible = []
-    for c in (0, 1):
-        table = np.zeros((8, 8), dtype=bool)
-        for k in range(8):
-            mask = kings[c] == k
-            if mask.any():
-                table[k] = ok[c][mask].any(axis=0)
-        possible.append(table)
+    possible = _king_tables(ok, kings, lambda block: block.any(axis=0))
     pairs = np.argwhere(possible[0] & possible[1].T)  # (white king, black king)
     if len(pairs) == 0:
         return None

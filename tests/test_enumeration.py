@@ -65,3 +65,39 @@ def test_fallback_on_ilp(monkeypatch):
         enumeration.explanation(cb)
     cb.move(1, 0, 2, 2, disp=False)  # uses the integer program
     assert cb.all_legal_natures(cb.grid[2][2]) == ["N"]
+
+
+def test_count_at_start():
+    assert ChessBoard().count_explanations() == 5040**2
+
+
+def test_count_partitions():
+    rng = random.Random(3)
+    np.random.seed(3)
+    cb = ChessBoard()
+    for _ in range(12):
+        cb.move(*rng.choice(cb.all_legal_moves()), disp=False)
+        total = cb.count_explanations()
+        assert total > 0
+        # In check or not
+        assert total == cb.count_explanations(True) + cb.count_explanations(False)
+        # Partition by the nature of one piece
+        piece = cb.pieces[cb.time % 2][rng.randrange(8)]
+        by_nature = 0
+        for n in "KQRBN":
+            piece.forbidden_natures = [m for m in "KQRBN" if m != n]
+            by_nature += cb.count_explanations()
+        piece.forbidden_natures = []
+        assert by_nature == total
+
+
+def test_count_matches_explanation():
+    cb = ChessBoard()
+    cb.move(1, 0, 2, 2, disp=False)
+    piece = cb.pieces[0][1]
+    for n in "KQRBN":
+        piece.forbidden_natures = [m for m in "KQRBN" if m != n]
+        assert (cb.count_explanations() > 0) == (cb.explanation() is not None)
+    piece.forbidden_natures = []
+    # The knight is determined, and the other 7 pieces of white are free
+    assert cb.count_explanations() == (5040 * 2 // 8) * 5040
