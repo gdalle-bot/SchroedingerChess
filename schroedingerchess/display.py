@@ -6,7 +6,7 @@ import time
 
 import pygame
 
-from .chess import LightBoard
+from .chess import FIFTY_MOVE_LIMIT, LightBoard
 
 ASSETS_DIR = os.path.dirname(os.path.abspath(__file__))
 UI_FONTS = "inter,segoeui,helveticaneue,arial,dejavusans"
@@ -36,6 +36,7 @@ CHECK = (232, 70, 60, 150)
 ERROR = (214, 64, 58)
 ERROR_SQUARE = (232, 70, 60, 110)
 ERROR_DURATION = 3.0  # seconds during which an error stays on screen
+WARNING = (240, 180, 70)
 
 
 class Font:
@@ -771,7 +772,7 @@ class ChessDisplay:
         self.canvas.text(self.small_font, mode, MUTED, topleft=(x, PADDING + 38))
 
         if self.state == "PLAYING":
-            status = pygame.Rect(x, 90, PANE - 2 * PADDING, 60)
+            status = pygame.Rect(x, 80, PANE - 2 * PADDING, 78)
             self.canvas.draw_rect(CARD, status, radius=RADIUS)
             turn = self._turn()
             if turn is None:
@@ -779,11 +780,12 @@ class ChessDisplay:
             else:
                 text = ("White" if turn == 0 else "Black") + " to move"
                 dot = (245, 245, 245) if turn == 0 else (20, 20, 20)
-            center = (status.x + 30, status.centery)
+            center = (status.x + 30, status.y + 26)
             self.canvas.circle(dot, center, 11)
             self.canvas.circle(BORDER, center, 11, 1)
-            midleft = (status.x + 54, status.centery)
+            midleft = (status.x + 54, status.y + 26)
             self.canvas.text(self.font_bold, text, TEXT, midleft=midleft)
+            self._draw_fifty_move_countdown(status)
 
             mouse = pygame.mouse.get_pos()
             for name, button in self._pane_buttons().items():
@@ -816,6 +818,28 @@ class ChessDisplay:
                     px = x + (i % 10) * size
                     py = y + 26 + row * (size + 8)
                     self.draw_piece(color, piece["natures"], px, py, size)
+
+    def _draw_fifty_move_countdown(self, status):
+        """Show how many moves remain before a draw by the 50-move rule."""
+        lightBoard = self.lightBoard or getattr(self.gameEngine, "lightBoard", None)
+        if lightBoard is None:
+            return
+        moves = lightBoard.moves_until_fifty_move_draw()
+        if moves == 0:
+            text, color = "Draw by the 50-move rule", WARNING
+        else:
+            plural = "move" if moves == 1 else "moves"
+            text = f"Draw by the 50-move rule in {moves} {plural}"
+            color = WARNING if moves <= 10 else MUTED
+        midleft = (status.x + 16, status.y + 54)
+        self.canvas.text(self.small_font, text, color, midleft=midleft)
+        # Progress bar along the bottom of the card
+        bar = pygame.Rect(status.x + 16, status.bottom - 10, status.width - 32, 4)
+        self.canvas.draw_rect(BORDER, bar, radius=2)
+        progress = min(1.0, lightBoard.halfmove_clock / FIFTY_MOVE_LIMIT)
+        if progress > 0:
+            filled = pygame.Rect(bar.x, bar.y, max(4, bar.width * progress), bar.height)
+            self.canvas.draw_rect(color, filled, radius=2)
 
     def _turn(self):
         """Color of the player to move, or None if the game has not started."""
